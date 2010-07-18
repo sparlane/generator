@@ -57,6 +57,10 @@ static bool generate_object_struct(FILE *header, object *o)
 	if(res <= 0)
 		gen_error(strerror(errno));
 
+	res = fprintf(header, "\tbool destroyed;\n", o->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
+
 	if(o->locked)
 	{
 		// TODO: pthread_mutex_t might be the wrong type
@@ -164,9 +168,15 @@ static bool generate_object_function_lock(FILE *code, object *o, bool null)
 	if(res <= 0)
 		gen_error(strerror(errno));
 	
-	res = fprintf(code, "\t\tif(lock_res != 0) return %s;\n\t}\n\n", null ? "NULL" : "false");
+	res = fprintf(code, "\t\tif(lock_res != 0) return %s;\n", null ? "NULL" : "false");
 	if(res <= 0)
 		gen_error(strerror(errno));
+
+	res = fprintf(code, "\t\tif(o->destroyed)\n\t\t{\n\t\t\tpthread_mutex_unlock(&o->lock);\n\t\t\treturn %s;\n\t\t}\n\t}\n\n", null ? "NULL" : "false");
+	if(res <= 0)
+		gen_error(strerror(errno));
+
+
 	return true;
 }
 
@@ -358,8 +368,12 @@ static bool generate_object_function_destroy(FILE *code, object *o, bool local)
 	if(res <= 0)
 		gen_error(strerror(errno));
 
-	if(o->locked)
+	if(o->locked && !local)
 		generate_object_function_lock(code, o, false);
+
+	res = fprintf(code, "\to->destroyed = true;\n\n", o->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
 
 	for(int i = 0; i < o->member_count; i++)
 	{
@@ -430,6 +444,10 @@ static bool generate_object_function_refunref(FILE *code, object *o)
 	if(res <= 0)
 		gen_error(strerror(errno));
 	
+	res = fprintf(code, "\tif(o == NULL) return false;\n\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
 	if(o->locked)
 		if(!generate_object_function_lock(code, o, false))
 			gen_error("generating locking code");
@@ -463,6 +481,10 @@ static bool generate_object_function_refunref(FILE *code, object *o)
 	if(res <= 0)
 		gen_error(strerror(errno));
 	
+	res = fprintf(code, "\tif(o == NULL) return false;\n\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
 	if(o->locked)
 		if(!generate_object_function_lock(code, o, false))
 			gen_error("generating locking code");
@@ -475,14 +497,14 @@ static bool generate_object_function_refunref(FILE *code, object *o)
 	if(res <= 0)
 		gen_error(strerror(errno));
 	
-	
+	res = fprintf(code, "\tif(done) return %s_destroy(o);\n\n", o->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
+
 	if(o->locked)
 		if(!generate_object_function_unlock(code, o))
 			gen_error("generating unlocking code");
 	
-	res = fprintf(code, "\tif(done) %s_destroy(o);\n\n", o->name);
-	if(res <= 0)
-		gen_error(strerror(errno));
 	
 	res = fprintf(code, "\treturn true;\n");
 	if(res <= 0)
