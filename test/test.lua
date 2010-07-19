@@ -10,7 +10,8 @@ objectAddObject(test2_o, test3_o, 'a', true, true, {})
 
 moduleAddInclude('scott', 'string.h') 
 
--- objectAddArrayObject(beta, test1_o, 'arraya')
+objectAddArrayObject(beta, test1_o, 'arraya')
+objectAddArrayObject(beta, test2_o, 'arrayb')
 objectAddPointer(beta, 'char', 'str1', 'free')
 objectAddPointer(beta, 'char', 'str2', 'free', true, false, 'strdup("testing")')
 objectAddType(beta, 'bool', 'hello1')

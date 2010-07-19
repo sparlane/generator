@@ -43,7 +43,31 @@ static bool generate_member_def(FILE *header, member *m)
 			if(res <= 0)
 				gen_error(strerror(errno));
 		} break;
-		default: gen_error("Unknown member type\n");
+		case member_type_array: {
+			switch(m->array_of->type)
+			{
+				case member_type_object: {
+					int res = fprintf(header, "%s *%s", m->array_of->o->name, m->name);
+					if(res <= 0)
+						gen_error(strerror(errno));
+				} break;
+				case member_type_type: {
+					int res = fprintf(header, "%s *%s", m->type_name, m->name);
+					if(res <= 0)
+						gen_error(strerror(errno));
+				} break;
+				case member_type_pointer: {
+					int res = fprintf(header, "%s **%s", m->type_name, m->name);
+					if(res <= 0)
+						gen_error(strerror(errno));
+				} break;
+				default: gen_error("Unknown member type");
+			}
+			int res = fprintf(header, "size_t %s_count", m->name);
+			if(res <= 0)
+				gen_error(strerror(errno));
+		} break;
+		default: gen_error("Unknown member type");
 	}
 	
 	return true;	
@@ -398,6 +422,43 @@ static bool generate_object_function_destroy(FILE *code, object *o, bool local)
 				res = fprintf(code, ";\n\n");
 				if(res <= 0)
 					gen_error(strerror(errno));
+			} break;
+			case member_type_array: {
+				res = fprintf(code, "\tif(o->%s != NULL)\n", m->name);
+				if(res <= 0)
+					gen_error(strerror(errno));
+				res = fprintf(code, "\t{\n");
+				if(res <= 0)
+					gen_error(strerror(errno));
+				res = fprintf(code, "\t\tfor(size_t i = 0; i < o->%s_count; i++)\n\t\t{\n", m->name);
+				if(res <= 0)
+					gen_error(strerror(errno));
+				switch(m->array_of->type)
+				{
+					case member_type_object: {
+						res = fprintf(code, "\t\t\tif(o->%s[i] != NULL) %s_%s(o->%s[i]);\n", m->name, m->array_of->o->name, (m->array_of->o->locked && m->array_of->o->refcount) ? "unref" : "destroy", m->name);
+						if(res <= 0)
+							gen_error(strerror(errno));
+					} break;
+					case member_type_type: {
+						// do nothing
+					} break;
+					case member_type_pointer: {
+						res = fprintf(code, "\tif(o->%s[i] != NULL) ", m->name);
+						if(res <= 0)
+							gen_error(strerror(errno));
+						res = fprintf(code, "%s(o->%s[i])", m->array_of->destruct, m->name);
+						if(res <= 0)
+							gen_error(strerror(errno));
+						res = fprintf(code, ";\n");
+						if(res <= 0)
+							gen_error(strerror(errno));
+					} break;
+				};
+				res = fprintf(code, "\t\t}\n\t}\n");
+				if(res <= 0)
+					gen_error(strerror(errno));
+
 			} break;
 			default: {
 				fprintf(stderr, "type = %i\n", m->type);
