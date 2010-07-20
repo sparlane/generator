@@ -39,6 +39,8 @@ struct module_s
 	size_t include_count;
 	object **objects;
 	size_t object_count;
+	char **modules;
+	size_t module_count;
 };
 
 struct object_s
@@ -107,6 +109,7 @@ object *world_find_object(world *w, const char *name);
 module *module_create(const char *name);
 bool module_add_object(module *m, object *o);
 bool module_add_include(module *m, const char *inc);
+bool module_add_depend(module *m, const char *dep);
 
 // object.c
 object *object_create(const char *name);

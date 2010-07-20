@@ -60,7 +60,7 @@ int process_object_add_object(lua_State *L)
 	if(o2 == NULL) gen_error("object could not be found");
 
 	// create a member and reference o2, and store it in o1
-	member *m = malloc(sizeof(member));
+	member *m = calloc(1,sizeof(member));
 	if(m == NULL)
 		gen_error("Allocating member failed");
 	
@@ -113,7 +113,7 @@ int process_object_add_type(lua_State *L)
 
 
 	// create a member with type = type, and store it in o1
-	member *m = malloc(sizeof(member));
+	member *m = calloc(1,sizeof(member));
 	if(m == NULL)
 		gen_error("Allocating member failed");
 	
@@ -125,7 +125,7 @@ int process_object_add_type(lua_State *L)
 	if(value != NULL)
 	{
 		m->param_count = 1;
-		m->init_params = malloc(sizeof(char *));
+		m->init_params = calloc(1,sizeof(char *));
 		if(m->init_params == NULL)
 			gen_error("failed allocating init_params");
 		m->init_params[0] = strdup(value);
@@ -175,7 +175,7 @@ int process_object_add_pointer(lua_State *L)
 
 
 	// create a member with type = type, and store it in o1
-	member *m = malloc(sizeof(member));
+	member *m = calloc(1,sizeof(member));
 	if(m == NULL)
 		gen_error("Allocating member failed");
 	
@@ -188,7 +188,7 @@ int process_object_add_pointer(lua_State *L)
 	if(value != NULL)
 	{
 		m->param_count = 1;
-		m->init_params = malloc(sizeof(char *));
+		m->init_params = calloc(1,sizeof(char *));
 		if(m->init_params == NULL)
 			gen_error("failed allocating init_params");
 		m->init_params[0] = strdup(value);
@@ -217,7 +217,7 @@ int process_object_add_array_object(lua_State *L)
 	if(o2 == NULL) gen_error("object could not be found");
 
 	// create a member and reference o2, and store it in o1
-	member *m1 = malloc(sizeof(member));
+	member *m1 = calloc(1,sizeof(member));
 	if(m1 == NULL)
 		gen_error("Allocating member failed");
 	
@@ -225,7 +225,44 @@ int process_object_add_array_object(lua_State *L)
 	m1->type = member_type_object;
 	m1->o = o2;
 	
-	member *m2 = malloc(sizeof(member));
+	member *m2 = calloc(1,sizeof(member));
+	if(m2 == NULL)
+		gen_error("Allocating member failed");
+	
+	m2->name = strdup(lua_tostring(L, 3));
+	m2->type = member_type_array;
+	m2->array_of = m1;
+	
+	if(!object_add_member(o1, m2))
+		gen_error("Failed adding member to object");
+	
+	lua_pushboolean(L, true);
+	return 1;
+}
+
+// bool objectAddArrayPointer(object, type, name, destruct)
+int process_object_add_array_pointer(lua_State *L)
+{
+	if(lua_gettop(L) != 4) gen_error("objectAddArrayPointer() requires exactly 4 arguments");
+	if(lua_type(L, 1) != LUA_TLIGHTUSERDATA) gen_error("objectAddArrayPointer() requires an object as the first argument");
+	if(lua_type(L, 2) != LUA_TSTRING) gen_error("objectAddArrayPointer() requires a string as the second argument");
+	if(lua_type(L, 3) != LUA_TSTRING) gen_error("objectAddArrayPointer() requires a string as the third argument");
+	if(lua_type(L, 4) != LUA_TSTRING) gen_error("objectAddArrayPointer() requires a string as the fourth argument");
+
+	object *o1 = (object *)lua_topointer(L, 1);
+	if(o1 == NULL) gen_error("object could not be found");
+	
+	// create a member and reference type, and store it in o1
+	member *m1 = calloc(1,sizeof(member));
+	if(m1 == NULL)
+		gen_error("Allocating member failed");
+	
+	m1->name = NULL;
+	m1->type = member_type_pointer;
+	m1->type_name = strdup(lua_tostring(L, 2));
+	m1->destruct = strdup(lua_tostring(L, 4));
+	
+	member *m2 = calloc(1,sizeof(member));
 	if(m2 == NULL)
 		gen_error("Allocating member failed");
 	
@@ -254,14 +291,29 @@ int process_module_add_include(lua_State *L)
 	return 1;
 }
 
+// bool moduleAddDep(module, module)
+int process_module_add_depend(lua_State *L)
+{
+	if(lua_gettop(L) != 2) gen_error("moduleAddDep() requires exactly 2 arguments");
+	if(lua_type(L, 1) != LUA_TSTRING) gen_error("moduleAddDep() requires a string as the first argument");
+	if(lua_type(L, 2) != LUA_TSTRING) gen_error("moduleAddDep() requires a string as the second argument");
+
+	module *m = world_find_module(WORLD, lua_tostring(L, 1));
+	if(m == NULL) gen_error("module not found, or could not be created");
+
+	lua_pushboolean(L, module_add_depend(m, lua_tostring(L, 2)));
+	return 1;
+}
 
 int luaopen_process(lua_State *L)
 {
 	lua_register(L, "objectCreate", process_object_create);
 	lua_register(L, "moduleAddInclude", process_module_add_include);
+	lua_register(L, "moduleAddDep", process_module_add_depend);
 	lua_register(L, "objectAddObject", process_object_add_object);
 	lua_register(L, "objectAddType", process_object_add_type);
 	lua_register(L, "objectAddPointer", process_object_add_pointer);
 	lua_register(L, "objectAddArrayObject", process_object_add_array_object);
+	lua_register(L, "objectAddArrayPointer", process_object_add_array_pointer);
 	return 1;
 }

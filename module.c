@@ -44,3 +44,21 @@ bool module_add_include(module *m, const char *inc)
 	
 	return true;
 }
+
+bool module_add_depend(module *m, const char *dep)
+{
+	if(m == NULL || dep == NULL) return false;
+	
+	for(int i = 0; i < m->module_count; i++)
+	{
+		if(!strcmp(m->modules[i], dep)) return false;
+	}
+	
+	m->module_count++;
+	m->modules = realloc(m->modules, sizeof(char *) * m->module_count);
+	if(m->modules == NULL) gen_error("reallocing modules");
+	
+	m->modules[m->module_count-1] = strdup(dep);
+	
+	return true;
+}

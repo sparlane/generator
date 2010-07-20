@@ -52,20 +52,17 @@ static bool generate_member_def(FILE *header, member *m)
 						gen_error(strerror(errno));
 				} break;
 				case member_type_type: {
-					int res = fprintf(header, "%s *%s", m->type_name, m->name);
+					int res = fprintf(header, "%s *%s", m->array_of->type_name, m->name);
 					if(res <= 0)
 						gen_error(strerror(errno));
 				} break;
 				case member_type_pointer: {
-					int res = fprintf(header, "%s **%s", m->type_name, m->name);
+					int res = fprintf(header, "%s **%s", m->array_of->type_name, m->name);
 					if(res <= 0)
 						gen_error(strerror(errno));
 				} break;
 				default: gen_error("Unknown member type");
 			}
-			int res = fprintf(header, "size_t %s_count", m->name);
-			if(res <= 0)
-				gen_error(strerror(errno));
 		} break;
 		default: gen_error("Unknown member type");
 	}
@@ -111,6 +108,13 @@ static bool generate_object_struct(FILE *header, object *o)
 		res = fprintf(header, ";\n");
 		if(res <= 0)
 			gen_error(strerror(errno));
+		
+		if(m->type == member_type_array)
+		{
+			res = fprintf(header, "\tsize_t %s_count;\n", m->name);
+			if(res <= 0)
+				gen_error(strerror(errno));
+		}
 	}
 	
 	res = fprintf(header, "};\n");
@@ -336,6 +340,7 @@ static bool generate_object_function_create(FILE *code, object *o)
 					res = fprintf(code, "\tif(o->%s == NULL) goto ERROR_%s;\n\n", m->name, errors[error_count-1].name);
 				} break;
 				default: {
+					fprintf(stderr, "type = %i, name = %s\n", m->type, m->name);
 					gen_error("unknown member type");
 				} break;
 			}
@@ -444,7 +449,7 @@ static bool generate_object_function_destroy(FILE *code, object *o, bool local)
 						// do nothing
 					} break;
 					case member_type_pointer: {
-						res = fprintf(code, "\tif(o->%s[i] != NULL) ", m->name);
+						res = fprintf(code, "\t\t\tif(o->%s[i] != NULL) ", m->name);
 						if(res <= 0)
 							gen_error(strerror(errno));
 						res = fprintf(code, "%s(o->%s[i])", m->array_of->destruct, m->name);
@@ -707,6 +712,66 @@ static bool generate_module(module *m)
 		path = NULL;
 	}
 	
+	// generate the lb scripts
+	res = asprintf(&path, "output/lb/lib/%s.lua", m->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
+	FILE *lb_script = fopen(path, "w");
+	if(lb_script == NULL)
+		gen_error(strerror(errno));
+	
+	res = fprintf(lb_script, "function lib_%s_dep(files,cflags,deps,done)\n", m->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
+	res = fprintf(lb_script, "\tif done.%s == nil then\n", m->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
+	res = fprintf(lb_script, "\t\tdone[\"%s\"] = true\n\n", m->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
+	res = fprintf(lb_script, "\t\t-- my deps\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
+	for(int i = 0; i < m->module_count; i++)
+	{
+		res = fprintf(lb_script, "\t\tlib_%s_dep(files,cflags,deps,done)\n", m->modules[i]);
+		if(res <= 0)
+			gen_error(strerror(errno));
+	}
+
+	res = fprintf(lb_script, "\n\t\t-- my files\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
+	for(int i = 0; i < m->object_count; i++)
+	{
+		res = fprintf(lb_script, "\t\ttable.insert(files, file('lib/%s/%s_%s.c'))\n", m->name, m->name, m->objects[i]->name);
+		if(res <= 0)
+			gen_error(strerror(errno));
+	}
+	
+	res = fprintf(lb_script, "\t\ttable.insert(deps, file('lib/%s/include/%s.h'))\n", m->name, m->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
+
+	res = fprintf(lb_script, "\tend\n", m->name, m->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
+	res = fprintf(lb_script, "end\n", m->name, m->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
+	fflush(lb_script);
+	fclose(lb_script);
+	
+	free(path);
+	
 	return true;
 }
 
@@ -724,6 +789,10 @@ bool generate(world *w)
 		gen_error(strerror(errno));
 	
 	res = mkdir("output/lb", 0755);
+	if(res != 0 && errno != EEXIST)
+		gen_error(strerror(errno));
+	
+	res = mkdir("output/lb/lib", 0755);
 	if(res != 0 && errno != EEXIST)
 		gen_error(strerror(errno));
 	
