@@ -53,6 +53,8 @@ struct object_s
 	bool refcount;
 	member **members;
 	size_t member_count;
+	function **functions;
+	size_t function_count;
 };
 
 struct member_s
