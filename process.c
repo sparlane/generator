@@ -70,6 +70,20 @@ int process_object_add_object(lua_State *L)
 	m->init = init;
 	m->init_input = input;
 	
+	if(lua_gettop(L) == 6)
+	{
+		lua_pushnil(L);  /* first key */
+		while (lua_next(L, 6) != 0) {
+			/* uses 'key' (at index -2) and 'value' (at index -1) */
+			if(lua_type(L, -1) != LUA_TSTRING) gen_error("objectAddObject() requires a table of strings as the sixth argument (if present)\n");
+			m->param_count++;
+			m->init_params = realloc(m->init_params, sizeof(char *) * m->param_count);
+			m->init_params[m->param_count-1] = strdup(lua_tostring(L, -1));
+			/* removes 'value'; keeps 'key' for next iteration */
+			lua_pop(L, 1);
+		}
+	}
+	
 	if(!object_add_member(o1, m))
 		gen_error("Failed adding member to object");
 	
@@ -277,6 +291,43 @@ int process_object_add_array_pointer(lua_State *L)
 	return 1;
 }
 
+// bool objectAddArrayType(object, type, name, destruct)
+int process_object_add_array_type(lua_State *L)
+{
+	if(lua_gettop(L) != 4) gen_error("objectAddArrayType() requires exactly 4 arguments");
+	if(lua_type(L, 1) != LUA_TLIGHTUSERDATA) gen_error("objectAddArrayType() requires an object as the first argument");
+	if(lua_type(L, 2) != LUA_TSTRING) gen_error("objectAddArrayType() requires a string as the second argument");
+	if(lua_type(L, 3) != LUA_TSTRING) gen_error("objectAddArrayType() requires a string as the third argument");
+	if(lua_type(L, 4) != LUA_TSTRING) gen_error("objectAddArrayType() requires a string as the fourth argument");
+
+	object *o1 = (object *)lua_topointer(L, 1);
+	if(o1 == NULL) gen_error("object could not be found");
+	
+	// create a member and reference type, and store it in o1
+	member *m1 = calloc(1,sizeof(member));
+	if(m1 == NULL)
+		gen_error("Allocating member failed");
+	
+	m1->name = NULL;
+	m1->type = member_type_type;
+	m1->type_name = strdup(lua_tostring(L, 2));
+	m1->destruct = strdup(lua_tostring(L, 4));
+	
+	member *m2 = calloc(1,sizeof(member));
+	if(m2 == NULL)
+		gen_error("Allocating member failed");
+	
+	m2->name = strdup(lua_tostring(L, 3));
+	m2->type = member_type_array;
+	m2->array_of = m1;
+	
+	if(!object_add_member(o1, m2))
+		gen_error("Failed adding member to object");
+	
+	lua_pushboolean(L, true);
+	return 1;
+}
+
 // bool moduleAddInclude(module, include)
 int process_module_add_include(lua_State *L)
 {
@@ -305,6 +356,144 @@ int process_module_add_depend(lua_State *L)
 	return 1;
 }
 
+// function *f = objectAddFunctionType(object, return, name)
+int process_object_add_function_type(lua_State *L)
+{
+	if(lua_gettop(L) != 3) gen_error("objectAddFunc() requires exactly 3 arguments");
+	if(lua_type(L, 1) != LUA_TLIGHTUSERDATA) gen_error("objectAddFunc() requires an object as the first argument");
+	if(lua_type(L, 2) != LUA_TSTRING) gen_error("objectAddFunc() requires a string as the second argument");
+	if(lua_type(L, 3) != LUA_TSTRING) gen_error("objectAddFunc() requires a string as the third argument");
+
+	object *o = (object *)lua_topointer(L, 1);
+	if(o == NULL) gen_error("object could not be found");
+
+	function *func = object_add_function(o, lua_tostring(L, 3));
+	if(func == NULL)
+		gen_error("failed to generate function, or it already exists");
+
+	func->returns = malloc(sizeof(member));
+	if(func->returns == NULL)
+		gen_error("failed allocating returns");
+	
+	func->returns->type = member_type_type;
+	func->returns->type_name = strdup(lua_tostring(L, 2));
+
+	lua_pushlightuserdata(L, func);
+	return 1;
+}
+
+// function *f = objectAddFunctionPointer(object, return, name)
+int process_object_add_function_pointer(lua_State *L)
+{
+	if(lua_gettop(L) != 3) gen_error("objectAddFunc() requires exactly 3 arguments");
+	if(lua_type(L, 1) != LUA_TLIGHTUSERDATA) gen_error("objectAddFunc() requires an object as the first argument");
+	if(lua_type(L, 2) != LUA_TSTRING) gen_error("objectAddFunc() requires a string as the second argument");
+	if(lua_type(L, 3) != LUA_TSTRING) gen_error("objectAddFunc() requires a string as the third argument");
+
+	object *o = (object *)lua_topointer(L, 1);
+	if(o == NULL) gen_error("object could not be found");
+
+	function *func = object_add_function(o, lua_tostring(L, 3));
+	if(func == NULL)
+		gen_error("failed to generate function, or it already exists");
+
+	func->returns = malloc(sizeof(member));
+	if(func->returns == NULL)
+		gen_error("failed allocating returns");
+	
+	func->returns->type = member_type_pointer;
+	func->returns->type_name = strdup(lua_tostring(L, 2));
+	
+	lua_pushlightuserdata(L, func);
+	return 1;
+}
+
+// function *f = objectAddFunctionObject(object, return, name)
+int process_object_add_function_object(lua_State *L)
+{
+	if(lua_gettop(L) != 3) gen_error("objectAddFunc() requires exactly 3 arguments");
+	if(lua_type(L, 1) != LUA_TLIGHTUSERDATA) gen_error("objectAddFunc() requires an object as the first argument");
+	if(lua_type(L, 2) != LUA_TSTRING) gen_error("objectAddFunc() requires a string as the second argument");
+	if(lua_type(L, 3) != LUA_TSTRING) gen_error("objectAddFunc() requires a string as the third argument");
+
+	object *o = (object *)lua_topointer(L, 1);
+	if(o == NULL) gen_error("object could not be found");
+
+	function *func = object_add_function(o, lua_tostring(L, 3));
+	if(func == NULL)
+		gen_error("failed to generate function, or it already exists");
+
+	func->returns = malloc(sizeof(member));
+	if(func->returns == NULL)
+		gen_error("failed allocating returns");
+	
+	func->returns->type = member_type_object;
+	func->returns->o = world_find_object(WORLD, lua_tostring(L, 2));
+
+	lua_pushlightuserdata(L, func);
+	return 1;
+}
+
+// bool functionAddParamType(function, type, name)
+int process_function_add_param_type(lua_State *L)
+{
+	if(lua_gettop(L) != 3) gen_error("fuctionAddParam() requires exactly 3 arguments");
+	if(lua_type(L, 1) != LUA_TLIGHTUSERDATA) gen_error("functionAddParam() requires an object as the first argument");
+	if(lua_type(L, 2) != LUA_TSTRING) gen_error("functionAddParam() requires a string as the second argument");
+	if(lua_type(L, 3) != LUA_TSTRING) gen_error("functionAddParam() requires a string as the third argument");
+
+	function *f = (function *)lua_topointer(L, 1);
+	if(f == NULL) gen_error("function could not be found");
+
+	member *m = malloc(sizeof(member));
+	if(m == NULL)
+		gen_error("failed allocating member");
+	
+	m->type = member_type_type;
+	m->type_name = strdup(lua_tostring(L, 2));
+	m->name = strdup(lua_tostring(L, 3));
+	
+	f->param_count++;
+	f->params = realloc(f->params, f->param_count * sizeof(member *));
+	if(f->params == NULL)
+		gen_error("realloc function parameters");
+	
+	f->params[f->param_count-1] = m;
+
+	lua_pushboolean(L, true);
+	return 1;
+}
+
+// bool functionAddParamPointer(function, type, name)
+int process_function_add_param_pointer(lua_State *L)
+{
+	if(lua_gettop(L) != 3) gen_error("fuctionAddParam() requires exactly 3 arguments");
+	if(lua_type(L, 1) != LUA_TLIGHTUSERDATA) gen_error("functionAddParam() requires an object as the first argument");
+	if(lua_type(L, 2) != LUA_TSTRING) gen_error("functionAddParam() requires a string as the second argument");
+	if(lua_type(L, 3) != LUA_TSTRING) gen_error("functionAddParam() requires a string as the third argument");
+
+	function *f = (function *)lua_topointer(L, 1);
+	if(f == NULL) gen_error("function could not be found");
+
+	member *m = malloc(sizeof(member));
+	if(m == NULL)
+		gen_error("failed allocating member");
+	
+	m->type = member_type_pointer;
+	m->type_name = strdup(lua_tostring(L, 2));
+	m->name = strdup(lua_tostring(L, 3));
+
+	f->param_count++;
+	f->params = realloc(f->params, f->param_count * sizeof(member *));
+	if(f->params == NULL)
+		gen_error("realloc function parameters");
+	
+	f->params[f->param_count-1] = m;
+
+	lua_pushboolean(L, true);
+	return 1;
+}
+
 int luaopen_process(lua_State *L)
 {
 	lua_register(L, "objectCreate", process_object_create);
@@ -315,5 +504,11 @@ int luaopen_process(lua_State *L)
 	lua_register(L, "objectAddPointer", process_object_add_pointer);
 	lua_register(L, "objectAddArrayObject", process_object_add_array_object);
 	lua_register(L, "objectAddArrayPointer", process_object_add_array_pointer);
+	lua_register(L, "objectAddArrayType", process_object_add_array_type);
+	lua_register(L, "objectAddFunctionType", process_object_add_function_type);
+	lua_register(L, "objectAddFunctionPointer", process_object_add_function_pointer);
+	lua_register(L, "objectAddFunctionObject", process_object_add_function_object);
+	lua_register(L, "functionAddParamType", process_function_add_param_type);
+	lua_register(L, "functionAddParamPointer", process_function_add_param_pointer);
 	return 1;
 }

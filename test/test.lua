@@ -5,7 +5,7 @@ test3_o = objectCreate('scott','s3', false, false)
 beta = objectCreate('scott','beta', true, true)
 
 objectAddObject(test1_o, test2_o, 'a', false, false, {})
-objectAddObject(test1_o, test2_o, 'b', true, false, {})
+objectAddObject(test1_o, test2_o, 'b', true, false, {'scott'})
 objectAddObject(test2_o, test3_o, 'a', true, true, {})
 
 moduleAddInclude('scott', 'string.h') 
@@ -19,3 +19,7 @@ objectAddPointer(beta, 'char', 'str2', 'free', true, false, 'strdup("testing")')
 objectAddType(beta, 'bool', 'hello1')
 objectAddType(beta, 'bool', 'hello2', true, false, 'true')
 objectAddType(beta, 'bool', 'hello3', true, true)
+
+func1 = objectAddFunctionType(beta, 'bool', 'magic')
+functionAddParamType(func1, 'bool', 'testb')
+functionAddParamPointer(func1, 'char', 'testc')

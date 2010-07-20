@@ -19,7 +19,6 @@ typedef struct module_s module;
 typedef struct object_s object;
 typedef struct member_s member;
 typedef struct function_s function;
-typedef struct operation_s operation;
 
 typedef enum { member_type_none , member_type_object , member_type_type, member_type_pointer, member_type_array } member_type;
 
@@ -75,20 +74,11 @@ struct member_s
 struct function_s
 {
 	object *o;
+	char *name;
+	member *returns;
 	member **params;
 	size_t param_count;
-	operation **operations;
-	size_t operation_count;	
 };
-
-struct operation_s
-{
-	// dont know yet
-	// operation type
-	// other things ??	
-	char *name;
-};
-
 
 // main.c
 extern world *WORLD;
@@ -116,4 +106,7 @@ bool module_add_depend(module *m, const char *dep);
 // object.c
 object *object_create(const char *name);
 bool object_add_member(object *o, member *m);
+function *object_add_function(object *o, const char *name);
 
+// function.c
+function *function_create(const char *name);

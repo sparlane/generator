@@ -1,5 +1,5 @@
 CFLAGS:=-Iinclude -std=c99 -pedantic `pkg-config --cflags --libs lua` -D_GNU_SOURCE -ggdb
-CFILES=main.c generate.c process.c world.c module.c object.c
+CFILES=main.c generate.c process.c world.c module.c object.c function.c
 
 all: generator
 

@@ -193,26 +193,26 @@ static bool generate_object_function_definitions(FILE *header, object *o)
 		switch(m->type)
 		{
 			case member_type_object: {
-				res = fprintf(header, "%s %s_get_%s(%s o);\n", m->o->name, o->name, m->name, o->name);
+				res = fprintf(header, "%s %s_%s_get(%s o);\n", m->o->name, o->name, m->name, o->name);
 				if(res <= 0)
 					gen_error(strerror(errno));
-				res = fprintf(header, "bool %s_set_%s(%s o, %s n);\n", o->name, m->name, o->name, m->o->name);
+				res = fprintf(header, "bool %s_%s_set(%s o, %s n);\n", o->name, m->name, o->name, m->o->name);
 				if(res <= 0)
 					gen_error(strerror(errno));
 			} break;
 			case member_type_type: {
-				res = fprintf(header, "%s %s_get_%s(%s o);\n", m->type_name, o->name, m->name, o->name);
+				res = fprintf(header, "%s %s_%s_get(%s o);\n", m->type_name, o->name, m->name, o->name);
 				if(res <= 0)
 					gen_error(strerror(errno));
-				res = fprintf(header, "bool %s_set_%s(%s o, %s n);\n", o->name, m->name, o->name, m->type_name);
+				res = fprintf(header, "bool %s_%s_set(%s o, %s n);\n", o->name, m->name, o->name, m->type_name);
 				if(res <= 0)
 					gen_error(strerror(errno));
 			} break;
 			case member_type_pointer: {
-				res = fprintf(header, "%s *%s_get_%s(%s o);\n", m->type_name, o->name, m->name, o->name);
+				res = fprintf(header, "%s *%s_%s_get(%s o);\n", m->type_name, o->name, m->name, o->name);
 				if(res <= 0)
 					gen_error(strerror(errno));
-				res = fprintf(header, "bool %s_set_%s(%s o, %s *n);\n", o->name, m->name, o->name, m->type_name);
+				res = fprintf(header, "bool %s_%s_set(%s o, %s *n);\n", o->name, m->name, o->name, m->type_name);
 				if(res <= 0)
 					gen_error(strerror(errno));
 			} break;
@@ -220,17 +220,17 @@ static bool generate_object_function_definitions(FILE *header, object *o)
 				switch(m->array_of->type)
 				{
 					case member_type_object: {
-						res = fprintf(header, "bool %s_add_%s(%s o, %s n);\n", o->name, m->name, o->name, m->array_of->o->name);
+						res = fprintf(header, "bool %s_%s_add(%s o, %s n);\n", o->name, m->name, o->name, m->array_of->o->name);
 						if(res <= 0)
 							gen_error(strerror(errno));
 					} break;
 					case member_type_type: {
-						res = fprintf(header, "bool %s_add_%s(%s o, %s n);\n", o->name, m->name, o->name, m->array_of->type_name);
+						res = fprintf(header, "bool %s_%s_add(%s o, %s n);\n", o->name, m->name, o->name, m->array_of->type_name);
 						if(res <= 0)
 							gen_error(strerror(errno));
 					} break;
 					case member_type_pointer: {
-						res = fprintf(header, "bool %s_add_%s(%s o, %s *n);\n", o->name, m->name, o->name, m->array_of->type_name);
+						res = fprintf(header, "bool %s_%s_add(%s o, %s *n);\n", o->name, m->name, o->name, m->array_of->type_name);
 						if(res <= 0)
 							gen_error(strerror(errno));
 					} break;
@@ -381,9 +381,27 @@ static bool generate_object_function_create(FILE *code, object *o)
 					if(res <= 0)
 						gen_error(strerror(errno));
 		
-					res = fprintf(code, "\to->%s = %s_create();\n", m->name, m->o->name);
+					res = fprintf(code, "\to->%s = %s_create(", m->name, m->o->name);
 					if(res <= 0)
 						gen_error(strerror(errno));
+					
+					for(int i = 0; i < m->param_count; i++)
+					{
+						res = fprintf(code, "%s", m->init_params[i]);
+						if(res <= 0)
+							gen_error(strerror(errno));
+						if(i != m->param_count-1)
+						{
+							res = fprintf(code, ", ");
+							if(res <= 0)
+								gen_error(strerror(errno));
+						}	
+					}
+					
+					res = fprintf(code, ");\n");
+					if(res <= 0)
+						gen_error(strerror(errno));
+
 					res = fprintf(code, "\tif(o->%s == NULL) goto ERROR_%s;\n\n", m->name, errors[error_count-1].name);
 					if(res <= 0)
 						gen_error(strerror(errno));
@@ -652,14 +670,216 @@ static bool generate_object_function_refunref(FILE *code, object *o)
 	return true;
 }
 
+static bool generate_object_function_get(FILE *code, object *o, member *m)
+{
+	if(code == NULL || o == NULL || m == NULL) return false;
+
+	switch(m->type)
+	{
+		case member_type_object: {
+			int res = fprintf(code, "%s ", m->o->name);
+			if(res <= 0)
+				gen_error(strerror(errno));	
+		} break;
+		case member_type_type: {
+			int res = fprintf(code, "%s ", m->type_name);
+			if(res <= 0)
+				gen_error(strerror(errno));	
+		} break;
+		case member_type_pointer: {
+			int res = fprintf(code, "%s *", m->type_name);
+			if(res <= 0)
+				gen_error(strerror(errno));	
+		} break;
+		default: {
+		
+		} break;
+	}
+	
+	int res = fprintf(code, "%s_%s_get(%s o)\n", o->name, m->name, o->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
+
+	res = fprintf(code, "{\n", o->name, m->name, o->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
+
+	res = fprintf(code, "\tif(o == NULL) return false;\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
+	if(o->locked)
+		if(!generate_object_function_lock(code, o, true))
+			gen_error("generating locking code");
+
+	switch(m->type)
+	{
+		case member_type_object: {
+			res = fprintf(code, "\t%s ", m->o->name);
+			if(res <= 0)
+				gen_error(strerror(errno));	
+		} break;
+		case member_type_type: {
+			res = fprintf(code, "\t%s ", m->type_name);
+			if(res <= 0)
+				gen_error(strerror(errno));	
+		} break;
+		case member_type_pointer: {
+			res = fprintf(code, "\t%s *", m->type_name);
+			if(res <= 0)
+				gen_error(strerror(errno));	
+		} break;
+		default: {
+		
+		} break;
+	}
+	
+	res = fprintf(code, "res = o->%s;\n\n", m->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
+
+	if(m->type == member_type_object && m->o->locked && m->o->refcount)
+	{
+		res = fprintf(code, "\tif(!%s_ref(res)) res = NULL;\n", m->o->name);
+		if(res <= 0)
+			gen_error(strerror(errno));
+	}
+
+	if(o->locked)
+		if(!generate_object_function_unlock(code, o))
+			gen_error("generating unlocking code");
+
+	res = fprintf(code, "\treturn res;\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
+	res = fprintf(code, "}\n\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+
+	return true;
+}
+
+static bool generate_object_function_set(FILE *code, object *o, member *m)
+{
+	if(code == NULL || o == NULL || m == NULL) return false;
+
+	int res = fprintf(code, "bool %s_%s_set(%s o, ", o->name, m->name, o->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
+
+	switch(m->type)
+	{
+		case member_type_object: {
+			res = fprintf(code, "%s n)\n", m->o->name);
+			if(res <= 0)
+				gen_error(strerror(errno));	
+		} break;
+		case member_type_type: {
+			res = fprintf(code, "%s n)\n", m->type_name);
+			if(res <= 0)
+				gen_error(strerror(errno));	
+		} break;
+		case member_type_pointer: {
+			res = fprintf(code, "%s *n)\n", m->type_name);
+			if(res <= 0)
+				gen_error(strerror(errno));	
+		} break;
+		default: {
+		
+		} break;
+	}
+
+	res = fprintf(code, "{\n", o->name, m->name, o->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
+
+	res = fprintf(code, "\tif(o == NULL");
+	if(res <= 0)
+		gen_error(strerror(errno));	
+	
+	switch(m->type)
+	{
+		case member_type_object:
+		case member_type_pointer: {
+			res = fprintf(code, " || n == NULL");
+			if(res <= 0)
+				gen_error(strerror(errno));
+		} break;
+		default: {
+		
+		} break;
+	}
+
+	res = fprintf(code, ") return false;\n\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
+	if(o->locked)
+		if(!generate_object_function_lock(code, o, false))
+			gen_error("generating locking code");
+
+	res = fprintf(code, "\tbool res = true;\n\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+
+	switch(m->type)
+	{
+		case member_type_object: {
+			res = fprintf(code, "\tres = %s_%s(o->%s);\n\n", m->o->name, (m->o->locked && m->o->refcount) ? "unref" : "destroy", m->name);
+			if(res <= 0)
+				gen_error(strerror(errno));	
+		} break;
+		case member_type_pointer: {
+			res = fprintf(code, "\t%s(o->%s);\n\n", m->destruct, m->name);
+			if(res <= 0)
+				gen_error(strerror(errno));	
+		} break;
+		default: {
+		
+		} break;
+	}
+	
+	if(m->type == member_type_object && m->o->locked && m->o->refcount)
+	{
+		res = fprintf(code, "\tif(res)\n");
+		if(res <= 0)
+			gen_error(strerror(errno));
+		res = fprintf(code, "\t\tres = %s_ref(n);\n\n", m->o->name);
+		if(res <= 0)
+			gen_error(strerror(errno));
+	}
+
+	res = fprintf(code, "\tif(res)\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+	res = fprintf(code, "\t\to->%s = n;\n\n", m->name);
+	if(res <= 0)
+		gen_error(strerror(errno));
+
+	if(o->locked)
+		if(!generate_object_function_unlock(code, o))
+			gen_error("generating unlocking code");
+
+	res = fprintf(code, "\treturn res;\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
+	res = fprintf(code, "}\n\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+
+	return true;
+}
+
 static bool generate_object_function_add(FILE *code, object *o, member *m)
 {
-	if(o == NULL || m == NULL) return false;
+	if(code == NULL || o == NULL || m == NULL) return false;
 	
 	if(m->type != member_type_array)
 		gen_error("not the right type");
 	
-	int res = fprintf(code, "bool %s_add_%s(%s o, ", o->name, m->name, o->name);
+	int res = fprintf(code, "bool %s_%s_add(%s o, ", o->name, m->name, o->name);
 	if(res <= 0)
 		gen_error(strerror(errno));
 
@@ -910,6 +1130,73 @@ static bool generate_module(module *m)
 		if(!generate_object_function_definitions(header, m->objects[i]))
 			return false;
 	}
+	
+	// print the other functions (user-defined)
+	for(int k = 0; k < m->object_count; k++)
+	{
+		object *o = m->objects[k];
+
+		for(int i = 0; i < o->function_count; i++)
+		{
+			switch(o->functions[i]->returns->type)
+			{
+				case member_type_object:
+				{
+					res = fprintf(header, "%s %s_%s(", o->functions[i]->returns->o->name, o->name, o->functions[i]->name);
+					if(res <= 0)
+						gen_error(strerror(errno)); 
+				} break;
+				case member_type_type:
+				{
+					res = fprintf(header, "%s %s_%s(", o->functions[i]->returns->type_name, o->name, o->functions[i]->name);
+					if(res <= 0)
+						gen_error(strerror(errno)); 
+				} break;
+				case member_type_pointer:
+				{
+					res = fprintf(header, "%s *%s_%s(", o->functions[i]->returns->type_name, o->name, o->functions[i]->name);
+					if(res <= 0)
+						gen_error(strerror(errno)); 
+				} break;
+				default: {
+			
+				} break;
+			}
+			res = fprintf(header, "%s o", o->name);
+			if(res <= 0)
+				gen_error(strerror(errno)); 
+
+			for(int j = 0; j < o->functions[i]->param_count; j++)
+			{
+				switch(o->functions[i]->params[j]->type)
+				{
+					case member_type_object:
+					{
+						res = fprintf(header, ", %s %s", o->functions[i]->params[j]->o->name, o->functions[i]->params[j]->name);
+						if(res <= 0)
+							gen_error(strerror(errno)); 
+					} break;
+					case member_type_type:
+					{
+						res = fprintf(header, ", %s %s", o->functions[i]->params[j]->type_name, o->functions[i]->params[j]->name);
+						if(res <= 0)
+							gen_error(strerror(errno)); 
+					} break;
+					case member_type_pointer:
+					{
+						res = fprintf(header, ", %s *%s", o->functions[i]->params[j]->type_name, o->functions[i]->params[j]->name);
+						if(res <= 0)
+							gen_error(strerror(errno)); 
+					} break;
+				}
+			}
+			res = fprintf(header, "%s);\n", o->functions[i]->param_count ? "" : "void");
+			if(res <= 0)
+				gen_error(strerror(errno));
+		
+		}
+	}
+
 
 	res = fprintf(header, "#endif /* %s_H */\n", modUpperName);
 	if(res <= 0)
@@ -958,7 +1245,8 @@ static bool generate_module(module *m)
 				case member_type_type:
 				case member_type_pointer:
 				{
-				
+					generate_object_function_get(code, o, o->members[i]);
+					generate_object_function_set(code, o, o->members[i]);
 				} break;
 				case member_type_array: {
 					generate_object_function_add(code, o, o->members[i]);	
@@ -968,11 +1256,265 @@ static bool generate_module(module *m)
 				};
 			}
 		}
+		
+		// include the function templates
+		if(o->function_count > 0)
+		{
+			res = fprintf(code, "#include \"%s_%s_logic.c\"\n\n", m->name, o->name);
+			if(res <= 0)
+				gen_error(strerror(errno)); 	
+		}
+		
+		// generate wrappers for other functions
+		for(int j = 0; j < o->function_count; j++)
+		{
+			switch(o->functions[j]->returns->type)
+			{
+				case member_type_object:
+				{
+					res = fprintf(code, "%s %s_%s(", o->functions[j]->returns->o->name, o->name, o->functions[j]->name);
+					if(res <= 0)
+						gen_error(strerror(errno)); 
+				} break;
+				case member_type_type:
+				{
+					res = fprintf(code, "%s %s_%s(", o->functions[j]->returns->type_name, o->name, o->functions[j]->name);
+					if(res <= 0)
+						gen_error(strerror(errno)); 
+				} break;
+				case member_type_pointer:
+				{
+					res = fprintf(code, "%s *%s_%s(", o->functions[j]->returns->type_name, o->name, o->functions[j]->name);
+					if(res <= 0)
+						gen_error(strerror(errno)); 
+				} break;
+				default: {
+				
+				} break;
+			}
+			
+			res = fprintf(code, "%s o", o->name);
+			if(res <= 0)
+				gen_error(strerror(errno)); 
+
+
+
+			for(int k = 0; k < o->functions[j]->param_count; k++)
+			{
+				switch(o->functions[j]->params[k]->type)
+				{
+					case member_type_object:
+					{
+						res = fprintf(code, ", %s %s", o->functions[j]->params[k]->o->name, o->functions[j]->params[k]->name);
+						if(res <= 0)
+							gen_error(strerror(errno)); 
+					} break;
+					case member_type_type:
+					{
+						res = fprintf(code, ", %s %s", o->functions[j]->params[k]->type_name, o->functions[j]->params[k]->name);
+						if(res <= 0)
+							gen_error(strerror(errno)); 
+					} break;
+					case member_type_pointer:
+					{
+						res = fprintf(code, ", %s *%s", o->functions[j]->params[k]->type_name, o->functions[j]->params[k]->name);
+						if(res <= 0)
+							gen_error(strerror(errno)); 
+					} break;
+				}
+			}
+			res = fprintf(code, ")\n");
+			if(res <= 0)
+				gen_error(strerror(errno));
+			
+			res = fprintf(code, "{\n");
+			if(res <= 0)
+				gen_error(strerror(errno));
+			
+			if(o->locked)
+				if(!generate_object_function_lock(code, o, NULL))
+					gen_error("generating lock code");
+
+
+			switch(o->functions[j]->returns->type)
+			{
+				case member_type_object:
+				{
+					res = fprintf(code, "\t%s res = %s_%s_r(o", o->functions[j]->returns->o->name, o->name, o->functions[j]->name);
+					if(res <= 0)
+						gen_error(strerror(errno)); 
+				} break;
+				case member_type_type:
+				{
+					res = fprintf(code, "\t%s res = %s_%s_r(o", o->functions[j]->returns->type_name, o->name, o->functions[j]->name);
+					if(res <= 0)
+						gen_error(strerror(errno)); 
+				} break;
+				case member_type_pointer:
+				{
+					res = fprintf(code, "\t%s *res = %s_%s_r(o", o->functions[j]->returns->type_name, o->name, o->functions[j]->name);
+					if(res <= 0)
+						gen_error(strerror(errno)); 
+				} break;
+				default: {
+				
+				} break;
+			}
+			
+			for(int k = 0; k < o->functions[j]->param_count; k++)
+			{
+				res = fprintf(code, ", %s", o->functions[j]->params[k]->name);
+				if(res <= 0)
+					gen_error(strerror(errno)); 
+			}
+
+			res = fprintf(code, ");\n\n");
+			if(res <= 0)
+				gen_error(strerror(errno));
+
+			if(o->locked)
+				if(!generate_object_function_unlock(code, o))
+					gen_error("generating unlock code");
+
+			res = fprintf(code, "\treturn res;\n");
+			if(res <= 0)
+				gen_error(strerror(errno));
+
+			res = fprintf(code, "}\n");
+			if(res <= 0)
+				gen_error(strerror(errno));
+			
+			
+		}
+
 		fflush(code);
 		fclose(code);
 		
 		free(path);
 		path = NULL;
+	}
+	
+	// generate the template files
+	for(int i = 0; i < m->object_count; i++)
+	{
+		object *o = m->objects[i];
+		if(o->function_count == 0) continue;
+
+		res = asprintf(&path, "output/lib/%s/%s_%s_logic.c.tpl", m->name, m->name, o->name);
+		if(res <= 0)
+			gen_error(strerror(errno));
+	
+		FILE *code = fopen(path, "w");
+		if(code == NULL)
+			gen_error(strerror(errno));
+	
+		for(int j = 0; j < o->function_count; j++)
+		{
+			switch(o->functions[j]->returns->type)
+			{
+				case member_type_object:
+				{
+					res = fprintf(code, "static %s %s_%s_r(", o->functions[j]->returns->o->name, o->name, o->functions[j]->name);
+					if(res <= 0)
+						gen_error(strerror(errno)); 
+				} break;
+				case member_type_type:
+				{
+					res = fprintf(code, "static %s %s_%s_r(", o->functions[j]->returns->type_name, o->name, o->functions[j]->name);
+					if(res <= 0)
+						gen_error(strerror(errno)); 
+				} break;
+				case member_type_pointer:
+				{
+					res = fprintf(code, "static %s *%s_%s_r(", o->functions[j]->returns->type_name, o->name, o->functions[j]->name);
+					if(res <= 0)
+						gen_error(strerror(errno)); 
+				} break;
+				default: {
+				
+				} break;
+			}
+			
+			res = fprintf(code, "%s o", o->name);
+			if(res <= 0)
+				gen_error(strerror(errno)); 
+			
+			for(int k = 0; k < o->functions[j]->param_count; k++)
+			{
+				switch(o->functions[j]->params[k]->type)
+				{
+					case member_type_object:
+					{
+						res = fprintf(code, ", %s %s", o->functions[j]->params[k]->o->name, o->functions[j]->params[k]->name);
+						if(res <= 0)
+							gen_error(strerror(errno)); 
+					} break;
+					case member_type_type:
+					{
+						res = fprintf(code, ", %s %s", o->functions[j]->params[k]->type_name, o->functions[j]->params[k]->name);
+						if(res <= 0)
+							gen_error(strerror(errno)); 
+					} break;
+					case member_type_pointer:
+					{
+						res = fprintf(code, ", %s *%s", o->functions[j]->params[k]->type_name, o->functions[j]->params[k]->name);
+						if(res <= 0)
+							gen_error(strerror(errno)); 
+					} break;
+				}
+			}
+			res = fprintf(code, ")\n");
+			if(res <= 0)
+				gen_error(strerror(errno));
+			
+			res = fprintf(code, "{\n");
+			if(res <= 0)
+				gen_error(strerror(errno));
+				
+			switch(o->functions[j]->returns->type)
+			{
+				case member_type_object:
+				{
+					res = fprintf(code, "\t%s res;\n", o->functions[j]->returns->o->name, o->name, o->functions[j]->name);
+					if(res <= 0)
+						gen_error(strerror(errno)); 
+				} break;
+				case member_type_type:
+				{
+					res = fprintf(code, "\t%s res;\n", o->functions[j]->returns->type_name, o->name, o->functions[j]->name);
+					if(res <= 0)
+						gen_error(strerror(errno)); 
+				} break;
+				case member_type_pointer:
+				{
+					res = fprintf(code, "\t%s *res;\n", o->functions[j]->returns->type_name, o->name, o->functions[j]->name);
+					if(res <= 0)
+						gen_error(strerror(errno)); 
+				} break;
+				default: {
+				
+				} break;
+			}
+
+			res = fprintf(code, "\t// INSERT YOUR CODE HERE\n");
+			if(res <= 0)
+				gen_error(strerror(errno));
+
+			res = fprintf(code, "\treturn res;\n");
+			if(res <= 0)
+				gen_error(strerror(errno));
+
+			res = fprintf(code, "}\n");
+			if(res <= 0)
+				gen_error(strerror(errno));
+
+			fflush(code);
+			fclose(code);
+		
+			free(path);
+			path = NULL;
+		}
+
 	}
 	
 	// generate the lb scripts
@@ -1016,6 +1558,12 @@ static bool generate_module(module *m)
 		res = fprintf(lb_script, "\t\ttable.insert(files, file('lib/%s/%s_%s.c'))\n", m->name, m->name, m->objects[i]->name);
 		if(res <= 0)
 			gen_error(strerror(errno));
+		if(m->objects[i]->function_count > 0)
+		{
+			res = fprintf(lb_script, "\t\ttable.insert(files, file('lib/%s/%s_%s_logic.c'))\n", m->name, m->name, m->objects[i]->name);
+			if(res <= 0)
+				gen_error(strerror(errno));
+		}
 	}
 	
 	res = fprintf(lb_script, "\t\ttable.insert(deps, file('lib/%s/include/%s.h'))\n", m->name, m->name);

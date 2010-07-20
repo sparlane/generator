@@ -26,3 +26,21 @@ bool object_add_member(object *o, member *m)
 	
 	return true;
 }
+
+function *object_add_function(object *o, const char *name)
+{
+	if(o == NULL || name == NULL) return NULL;
+	
+	for(int i = 0; i < o->function_count; i++)
+	{
+		if(!strcmp(o->functions[i]->name, name))
+			return false;
+	}
+	
+	o->function_count++;
+	o->functions = realloc(o->functions, o->function_count * sizeof(function *));
+	
+	o->functions[o->function_count-1] = function_create(name);
+	
+	return o->functions[o->function_count-1];
+}
