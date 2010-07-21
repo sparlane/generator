@@ -5,7 +5,7 @@ test3_o = objectCreate('scott','s3', false, false)
 beta = objectCreate('scott','beta', true, true)
 
 objectAddObject(test1_o, test2_o, 'a', false, false, {})
-objectAddObject(test1_o, test2_o, 'b', true, false, {'scott'})
+objectAddObject(test1_o, test2_o, 'b', false, false, {})
 objectAddObject(test2_o, test3_o, 'a', true, true, {})
 
 moduleAddInclude('scott', 'string.h') 

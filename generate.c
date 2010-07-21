@@ -282,7 +282,7 @@ static bool generate_object_function_unlock(FILE *code, object *o)
 {
 	if(code == NULL || o == NULL) return false;
 	
-	int res = fprintf(code, "\t{\n\t\tint lock_res = pthread_mutex_unlock(&o->lock);\n");
+	int res = fprintf(code, "\t{\n\t\t/* int lock_res = */ pthread_mutex_unlock(&o->lock);\n");
 	if(res <= 0)
 		gen_error(strerror(errno));
 	
@@ -1245,8 +1245,11 @@ static bool generate_module(module *m)
 				case member_type_type:
 				case member_type_pointer:
 				{
-					generate_object_function_get(code, o, o->members[i]);
-					generate_object_function_set(code, o, o->members[i]);
+					if(!o->members[i]->init)
+					{
+						generate_object_function_get(code, o, o->members[i]);
+						generate_object_function_set(code, o, o->members[i]);
+					}
 				} break;
 				case member_type_array: {
 					generate_object_function_add(code, o, o->members[i]);	

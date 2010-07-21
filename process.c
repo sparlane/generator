@@ -494,6 +494,36 @@ int process_function_add_param_pointer(lua_State *L)
 	return 1;
 }
 
+// bool functionAddParamObject(function, object, name)
+int process_function_add_param_object(lua_State *L)
+{
+	if(lua_gettop(L) != 3) gen_error("fuctionAddParam() requires exactly 3 arguments");
+	if(lua_type(L, 1) != LUA_TLIGHTUSERDATA) gen_error("functionAddParam() requires an object as the first argument");
+	if(lua_type(L, 2) != LUA_TLIGHTUSERDATA) gen_error("functionAddParam() requires an object as the second argument");
+	if(lua_type(L, 3) != LUA_TSTRING) gen_error("functionAddParam() requires a string as the third argument");
+
+	function *f = (function *)lua_topointer(L, 1);
+	if(f == NULL) gen_error("function could not be found");
+
+	member *m = malloc(sizeof(member));
+	if(m == NULL)
+		gen_error("failed allocating member");
+	
+	m->type = member_type_object;
+	m->o = (object *)lua_topointer(L, 2);
+	m->name = strdup(lua_tostring(L, 3));
+
+	f->param_count++;
+	f->params = realloc(f->params, f->param_count * sizeof(member *));
+	if(f->params == NULL)
+		gen_error("realloc function parameters");
+	
+	f->params[f->param_count-1] = m;
+
+	lua_pushboolean(L, true);
+	return 1;
+}
+
 int luaopen_process(lua_State *L)
 {
 	lua_register(L, "objectCreate", process_object_create);
@@ -510,5 +540,6 @@ int luaopen_process(lua_State *L)
 	lua_register(L, "objectAddFunctionObject", process_object_add_function_object);
 	lua_register(L, "functionAddParamType", process_function_add_param_type);
 	lua_register(L, "functionAddParamPointer", process_function_add_param_pointer);
+	lua_register(L, "functionAddParamObject", process_function_add_param_object);
 	return 1;
 }
