@@ -413,7 +413,7 @@ int process_object_add_function_object(lua_State *L)
 {
 	if(lua_gettop(L) != 3) gen_error("objectAddFunc() requires exactly 3 arguments");
 	if(lua_type(L, 1) != LUA_TLIGHTUSERDATA) gen_error("objectAddFunc() requires an object as the first argument");
-	if(lua_type(L, 2) != LUA_TSTRING) gen_error("objectAddFunc() requires a string as the second argument");
+	if(lua_type(L, 2) != LUA_TLIGHTUSERDATA) gen_error("objectAddFunc() requires a string as the second argument");
 	if(lua_type(L, 3) != LUA_TSTRING) gen_error("objectAddFunc() requires a string as the third argument");
 
 	object *o = (object *)lua_topointer(L, 1);
@@ -428,7 +428,7 @@ int process_object_add_function_object(lua_State *L)
 		gen_error("failed allocating returns");
 	
 	func->returns->type = member_type_object;
-	func->returns->o = world_find_object(WORLD, lua_tostring(L, 2));
+	func->returns->o = (object *)lua_topointer(L, 2);
 
 	lua_pushlightuserdata(L, func);
 	return 1;

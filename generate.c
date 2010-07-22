@@ -209,7 +209,7 @@ static bool generate_object_function_definitions(FILE *header, object *o)
 					gen_error(strerror(errno));
 			} break;
 			case member_type_pointer: {
-				res = fprintf(header, "%s *%s_%s_get(%s o);\n", m->type_name, o->name, m->name, o->name);
+				res = fprintf(header, "const %s *%s_%s_get(%s o);\n", m->type_name, o->name, m->name, o->name);
 				if(res <= 0)
 					gen_error(strerror(errno));
 				res = fprintf(header, "bool %s_%s_set(%s o, %s *n);\n", o->name, m->name, o->name, m->type_name);
@@ -548,7 +548,7 @@ static bool generate_object_function_destroy(FILE *code, object *o, bool local)
 							gen_error(strerror(errno));
 					} break;
 				}
-				res = fprintf(code, "\t\t}\n\t}\n");
+				res = fprintf(code, "\t\t}\n\tfree(o->%s);\n\t}\n", m->name);
 				if(res <= 0)
 					gen_error(strerror(errno));
 
@@ -687,7 +687,7 @@ static bool generate_object_function_get(FILE *code, object *o, member *m)
 				gen_error(strerror(errno));	
 		} break;
 		case member_type_pointer: {
-			int res = fprintf(code, "%s *", m->type_name);
+			int res = fprintf(code, "const %s *", m->type_name);
 			if(res <= 0)
 				gen_error(strerror(errno));	
 		} break;
@@ -709,7 +709,7 @@ static bool generate_object_function_get(FILE *code, object *o, member *m)
 		gen_error(strerror(errno));
 	
 	if(o->locked)
-		if(!generate_object_function_lock(code, o, true))
+		if(!generate_object_function_lock(code, o, (m->type == member_type_type) ? false : true))
 			gen_error("generating locking code");
 
 	switch(m->type)
@@ -872,17 +872,17 @@ static bool generate_object_function_set(FILE *code, object *o, member *m)
 	return true;
 }
 
-static bool generate_object_function_add(FILE *code, object *o, member *m)
+static bool generate_object_function_add_definition(FILE *code, object *o, member *m, bool internal)
 {
 	if(code == NULL || o == NULL || m == NULL) return false;
 	
 	if(m->type != member_type_array)
 		gen_error("not the right type");
-	
-	int res = fprintf(code, "bool %s_%s_add(%s o, ", o->name, m->name, o->name);
+
+	int res = fprintf(code, "%sbool %s_%s_add%s(%s o, ", (internal) ? "static " : "", o->name, m->name, (internal) ? "_r" : "", o->name);
 	if(res <= 0)
 		gen_error(strerror(errno));
-
+	
 	switch(m->array_of->type)
 	{
 		case member_type_object: {
@@ -904,35 +904,22 @@ static bool generate_object_function_add(FILE *code, object *o, member *m)
 		
 		} break;
 	}
-	
-	res = fprintf(code, "{\n");
-	if(res <= 0)
-		gen_error(strerror(errno));
-	
-	res = fprintf(code, "\tif(o == NULL");
-	if(res <= 0)
-		gen_error(strerror(errno));
-	
-	switch(m->array_of->type)
-	{
-		case member_type_object:
-		case member_type_pointer: {
-			res = fprintf(code, " || n == NULL");
-			if(res <= 0)
-				gen_error(strerror(errno));
-		} break;
-		default: {
-		
-		} break;
-	}
-	
-	res = fprintf(code, ") return false;\n\n");
-	if(res <= 0)
-		gen_error(strerror(errno));
+	return true;
+}
 
-	if(o->locked)
-		if(!generate_object_function_lock(code, o, false))
-			gen_error("generating locking code");
+static bool generate_object_function_add(FILE *code, object *o, member *m)
+{
+	if(code == NULL || o == NULL || m == NULL) return false;
+	
+	if(m->type != member_type_array)
+		gen_error("not the right type");
+	
+	if(!generate_object_function_add_definition(code, o, m, true))
+		gen_error("generating static function definition failed");
+
+	int res = fprintf(code, "{\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
 
 	res = fprintf(code, "\tbool res = true;\n\n");
 	if(res <= 0)
@@ -1026,6 +1013,49 @@ static bool generate_object_function_add(FILE *code, object *o, member *m)
 	if(res <= 0)
 		gen_error(strerror(errno));
 
+	res = fprintf(code, "\treturn res;\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+
+	res = fprintf(code, "}\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+
+
+	if(!generate_object_function_add_definition(code, o, m, false))
+		gen_error("generating function definition failed");
+	
+	res = fprintf(code, "{\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
+	res = fprintf(code, "\tif(o == NULL");
+	if(res <= 0)
+		gen_error(strerror(errno));
+	
+	switch(m->array_of->type)
+	{
+		case member_type_object:
+		case member_type_pointer: {
+			res = fprintf(code, " || n == NULL");
+			if(res <= 0)
+				gen_error(strerror(errno));
+		} break;
+		default: {
+		
+		} break;
+	}
+	
+	res = fprintf(code, ") return false;\n\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+
+	if(o->locked)
+		if(!generate_object_function_lock(code, o, false))
+			gen_error("generating locking code");
+
+	res = fprintf(code, "\tbool res = %s_%s_add_r(o, n);\n\n", o->name, m->name);
+
 	if(o->locked)
 		if(!generate_object_function_unlock(code, o))
 			gen_error("generating unlocking code");
@@ -1069,6 +1099,10 @@ static bool generate_module(module *m)
 	
 	char *modUpperName = to_upper_string(m->name);
 	
+	res = fprintf(header, "/* DO NOT EDIT: This file was automatically generated */\n");
+	if(res <= 0)
+		gen_error(strerror(errno));
+
 	res = fprintf(header, "#ifndef %s_H\n#define %s_H\n\n", modUpperName, modUpperName);
 	if(res <= 0)
 		gen_error(strerror(errno));
@@ -1223,6 +1257,9 @@ static bool generate_module(module *m)
 		if(code == NULL)
 			gen_error(strerror(errno));
 		
+		res = fprintf(code, "/* DO NOT EDIT: This file was automatically generated */\n");
+		if(res <= 0)
+			gen_error(strerror(errno));
 		res = fprintf(code, "#include <%s.h>\n", m->name);
 		if(res <= 0)
 			gen_error(strerror(errno));
@@ -1511,12 +1548,12 @@ static bool generate_module(module *m)
 			if(res <= 0)
 				gen_error(strerror(errno));
 
-			fflush(code);
-			fclose(code);
-		
-			free(path);
-			path = NULL;
 		}
+		fflush(code);
+		fclose(code);
+		
+		free(path);
+		path = NULL;
 
 	}
 	
