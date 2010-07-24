@@ -34,6 +34,10 @@ struct module_s
 {
 	world *w;
 	char *name;
+	char *path;
+	char *file_prefix;
+	char *function_prefix;
+	char *struct_prefix;
 	char **includes;
 	size_t include_count;
 	object **objects;

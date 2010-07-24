@@ -2,15 +2,43 @@
 
 #define process_error(S,E) process_error_x(S,E,__FUNCTION__,__LINE__)
 
+// module *m = moduleCreate(name, path, header_prefix, function_prefix, struct_prefix)
+int process_module_create(lua_State *L)
+{
+	if(lua_gettop(L) <= 2) gen_error("moduleCreate() requires at least 2 arguments");
+	if(lua_gettop(L) > 5) gen_error("moduleCreate() requires at most 5 arguments");
+	if(lua_type(L, 1) != LUA_TSTRING) gen_error("moduleCreate() requires a string as the first argument");
+	if(lua_type(L, 2) != LUA_TSTRING) gen_error("moduleCreate() requires a string as the second argument");
+	if(lua_gettop(L) >= 3 && lua_type(L, 3) != LUA_TSTRING) gen_error("moduleCreate() requires a string as the third argument");
+	if(lua_gettop(L) >= 4 && lua_type(L, 4) != LUA_TSTRING) gen_error("moduleCreate() requires a string as the fourth argument");
+	if(lua_gettop(L) == 5 && lua_type(L, 5) != LUA_TSTRING) gen_error("moduleCreate() requires a string as the fifth argument");
+
+	module *m = world_find_module(WORLD, lua_tostring(L, 1));
+	if(m == NULL) gen_error("module not found, or could not be created");
+	
+	m->path = strdup(lua_tostring(L, 2));
+	
+	if(lua_gettop(L) >= 3)
+		m->file_prefix = strdup(lua_tostring(L, 3));
+	
+	if(lua_gettop(L) >= 4)
+		m->function_prefix = strdup(lua_tostring(L, 4));
+
+	if(lua_gettop(L) >= 5)
+		m->struct_prefix = strdup(lua_tostring(L, 5));
+
+	lua_pushlightuserdata(L, m);
+	return 1;
+}
 
 // object *o = objectCreate(module, name, lock, ref)
 int process_object_create(lua_State *L)
 {
 	if(lua_gettop(L) != 4) gen_error("objectCreate() requires exactly 4 arguments");
-	if(lua_type(L, 1) != LUA_TSTRING) gen_error("objectCreate() requires as a string as the first argument");
-	if(lua_type(L, 2) != LUA_TSTRING) gen_error("objectCreate() requires as a string as the second argument");
-	if(lua_type(L, 3) != LUA_TBOOLEAN) gen_error("objectCreate() requires as a boolean as the third argument");
-	if(lua_type(L, 4) != LUA_TBOOLEAN) gen_error("objectCreate() requires as a boolean as the fourth argument");
+	if(lua_type(L, 1) != LUA_TSTRING) gen_error("objectCreate() requires a string as the first argument");
+	if(lua_type(L, 2) != LUA_TSTRING) gen_error("objectCreate() requires a string as the second argument");
+	if(lua_type(L, 3) != LUA_TBOOLEAN) gen_error("objectCreate() requires a boolean as the third argument");
+	if(lua_type(L, 4) != LUA_TBOOLEAN) gen_error("objectCreate() requires a boolean as the fourth argument");
 
 	module *m = world_find_module(WORLD, lua_tostring(L, 1));
 	if(m == NULL) gen_error("module not found, or could not be created");
@@ -18,6 +46,7 @@ int process_object_create(lua_State *L)
 	object *o = world_create_object(WORLD, lua_tostring(L, 2));
 	if(o == NULL) gen_error("object already exists, or could not be created");
 	module_add_object(m, o);
+	o->m = m;
 
 	o->locked = lua_toboolean(L, 3);
 	if(o->locked)
@@ -377,6 +406,7 @@ int process_object_add_function_type(lua_State *L)
 	
 	func->returns->type = member_type_type;
 	func->returns->type_name = strdup(lua_tostring(L, 2));
+	func->o = o;
 
 	lua_pushlightuserdata(L, func);
 	return 1;
@@ -403,6 +433,7 @@ int process_object_add_function_pointer(lua_State *L)
 	
 	func->returns->type = member_type_pointer;
 	func->returns->type_name = strdup(lua_tostring(L, 2));
+	func->o = o;
 	
 	lua_pushlightuserdata(L, func);
 	return 1;
@@ -429,6 +460,7 @@ int process_object_add_function_object(lua_State *L)
 	
 	func->returns->type = member_type_object;
 	func->returns->o = (object *)lua_topointer(L, 2);
+	func->o = o;
 
 	lua_pushlightuserdata(L, func);
 	return 1;
@@ -526,6 +558,7 @@ int process_function_add_param_object(lua_State *L)
 
 int luaopen_process(lua_State *L)
 {
+	lua_register(L, "moduleCreate", process_module_create);
 	lua_register(L, "objectCreate", process_object_create);
 	lua_register(L, "moduleAddInclude", process_module_add_include);
 	lua_register(L, "moduleAddDep", process_module_add_depend);

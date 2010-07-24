@@ -1,3 +1,4 @@
+moduleCreate('scott', 'server', 'us_', 'us_', 'us_')
 test1_o = objectCreate('scott','s1', true, true)
 test2_o = objectCreate('scott','s2', true, false)
 test3_o = objectCreate('scott','s3', false, false)
