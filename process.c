@@ -5,7 +5,7 @@
 // module *m = moduleCreate(name, path, header_prefix, function_prefix, struct_prefix)
 int process_module_create(lua_State *L)
 {
-	if(lua_gettop(L) <= 2) gen_error("moduleCreate() requires at least 2 arguments");
+	if(lua_gettop(L) < 2) gen_error("moduleCreate() requires at least 2 arguments");
 	if(lua_gettop(L) > 5) gen_error("moduleCreate() requires at most 5 arguments");
 	if(lua_type(L, 1) != LUA_TSTRING) gen_error("moduleCreate() requires a string as the first argument");
 	if(lua_type(L, 2) != LUA_TSTRING) gen_error("moduleCreate() requires a string as the second argument");
@@ -184,7 +184,7 @@ int process_object_add_type(lua_State *L)
 // bool objectAddPointer(object, type, name, destroy, init, input, create)
 int process_object_add_pointer(lua_State *L)
 {
-	if(lua_gettop(L) < 4) gen_error("objectAddPointer() requires at least 3 arguments");
+	if(lua_gettop(L) < 4) gen_error("objectAddPointer() requires at least 4 arguments");
 	if(lua_gettop(L) > 7) gen_error("objectAddPointer() requires no more than 6 arguments");
 	if(lua_type(L, 1) != LUA_TLIGHTUSERDATA) gen_error("objectAddPointer() requires an object as the first argument");
 	if(lua_type(L, 2) != LUA_TSTRING) gen_error("objectAddPointer() requires a string as the second argument");

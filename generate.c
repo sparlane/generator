@@ -826,7 +826,7 @@ static bool generate_object_function_set(FILE *code, const char *fprefix, object
 	switch(m->type)
 	{
 		case member_type_object: {
-			res = fprintf(code, "\tres = %s_%s(o->%s);\n\n", m->o->name, (m->o->locked && m->o->refcount) ? "unref" : "destroy", m->name);
+			res = fprintf(code, "\tif(o->%s != NULL)\n\t\tres = %s_%s(o->%s);\n\n", m->name, m->o->name, (m->o->locked && m->o->refcount) ? "unref" : "destroy", m->name);
 			if(res <= 0)
 				gen_error(strerror(errno));	
 		} break;
@@ -1409,7 +1409,7 @@ static bool generate_module(module *m)
 		object *o = m->objects[i];
 		if(o->function_count == 0) continue;
 
-		res = asprintf(&path, "output/lib/%s/%s_%s_logic.c.tpl", m->name, m->name, o->name);
+		res = asprintf(&path, "output/%s/%s/%s_%s_logic.c.tpl", m->path ? m->path : "lib", m->name, m->name, o->name);
 		if(res <= 0)
 			gen_error(strerror(errno));
 	
