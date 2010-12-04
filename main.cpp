@@ -1,6 +1,9 @@
 #include <generator.h>
 
-world *WORLD = NULL;
+using namespace generator;
+using namespace std;
+
+World *generator::WORLD = NULL;
 
 void gen_error_r(const char *mesg, const char *func, const char *file, int line)
 {
@@ -10,7 +13,7 @@ void gen_error_r(const char *mesg, const char *func, const char *file, int line)
 
 static void print_usage(const char *name)
 {
-	fprintf(stderr, "Usage: %s object.def\n", name);
+	fprintf(stderr, "Usage: %s objectDefinition.lua\n", name);
 	exit(EXIT_FAILURE);
 }
 
@@ -21,7 +24,7 @@ int main(int argc, char *argv[])
 		print_usage(argv[0]);
 	}
 	
-	WORLD = world_create();
+	WORLD = new World();
 	
 	lua_State *state = luaL_newstate();
 	if(state == NULL) gen_error("creating lua state");
@@ -40,9 +43,25 @@ int main(int argc, char *argv[])
 	}
 	
 	lua_close(state);
-	
-	if(!generate(WORLD))
+
+	// Create a "contrived" example
+#if 0
+	{
+		std::string *mName = new std::string("scott");
+		std::string *mPath = new std::string("server");
+		std::string *fPrefix = new std::string("us_");
+		std::string *funcPrefix = new std::string("");
+		Module *m = new Module(mName, mPath, fPrefix, funcPrefix);
+		WORLD->moduleAdd(mName, m);
+		
+		std::string *tName = new std::string("test");
+		Type *t = new Type(m, tName);
+		m->objectAdd(tName, t);
+	}
+#endif	
+		
+	if(!WORLD->generate())
 		gen_error("generating world");
-	
+
 	return EXIT_SUCCESS;
 }

@@ -1,7 +1,23 @@
-CFLAGS:=-Iinclude -std=c99 -pedantic `pkg-config --cflags --libs lua` -D_GNU_SOURCE -ggdb
-CFILES=main.c generate.c process.c world.c module.c object.c function.c
+CXXFLAGS:=-Iinclude -D_GNU_SOURCE -ggdb -g
+LXXFLAGS:=`pkg-config --cflags --libs lua` -ggdb -g
+CXXFILES:=main.cpp world.cpp module.cpp luainterface.cpp\
+	$(addprefix generate/, element.cpp object.cpp function.cpp member.cpp rtype.cpp pointer.cpp objectMember.cpp array.cpp)
+
+G++:=g++
+
+OFILES:=$(CXXFILES:.cpp=.o)
+
+%.o: %.cpp include/generator.h Makefile
+	@echo "Generating: $(@) from $(<)"
+	@$(G++) -c -o $(@) $(<) $(CXXFLAGS)
 
 all: generator
 
-generator: $(CFILES) include/* Makefile
-	gcc -o $(@) $(CFILES) $(CFLAGS)
+generator: $(OFILES)
+	@echo "$(G++) -o $(@) $(LXXFLAGS) $(OFILES)"
+	@$(G++) -o $(@)   $(LXXFLAGS) $(OFILES)
+
+clean:
+	@echo "Removing un-needed files"
+	@rm -f $(OFILES) generator
+
