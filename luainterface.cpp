@@ -18,21 +18,10 @@
 	T * V = (T *)lua_topointer(L, -1); \
 	lua_pop(L, 1);
 
-#define CREATE_TABLE(F,D) \
-	lua_newtable(L); \
-	lua_pushstring(L, "data"); \
-	lua_pushlightuserdata(L, D); \
-	lua_settable(L, -3);
-
-#define SET_TABLE_TYPE(F,T) \
-	lua_pushstring(L, #T); \
-	lua_pushstring(L, "yes"); \
-	lua_settable(L, -3); 
-
 using namespace generator;
 
 // bool memberAdd(Type, Member)
-int li_type_member_add(lua_State *L)
+int li_type_memberAdd(lua_State *L)
 {
 	CHECK_COUNT("memberAdd",2)	
 	CHECK_ARGUMENT_TYPE("memberAdd",1,Type,t)
@@ -43,7 +32,7 @@ int li_type_member_add(lua_State *L)
 }
 
 // bool paramAdd(Function, Member)
-int li_function_add_param(lua_State *L)
+int li_function_paramAdd(lua_State *L)
 {
 	CHECK_COUNT("paramAdd",2)	
 	CHECK_ARGUMENT_TYPE("paramAdd",1,Function,f)
@@ -54,7 +43,7 @@ int li_function_add_param(lua_State *L)
 }
 
 // function * functionCreate(Type, name, Member)
-int li_type_function_create(lua_State *L)
+int li_type_functionCreate(lua_State *L)
 {
 	CHECK_COUNT("functionCreate",3)	
 	CHECK_ARGUMENT_TYPE("functionCreate",1,Type,t)
@@ -64,16 +53,8 @@ int li_type_function_create(lua_State *L)
 
 	t->functionAdd(f);
 
-	// create a table for this
-	CREATE_TABLE("functionCreate", f)
-	// push any functions
-	lua_pushstring(L, "paramAdd");
-	lua_pushcfunction(L, li_function_add_param);
-	lua_settable(L, -3);
-
-	// set the type(s)
-	SET_TABLE_TYPE(L, Element)
-	SET_TABLE_TYPE(L, Function)
+	CREATE_TABLE(L, f);
+	f->lua_table(L);
 	
 	// return the table
 	return 1;
@@ -96,12 +77,8 @@ int li_extern_type_create(lua_State *L)
 				GET_ARGUMENT_IF_GIVEN_STR(5) );
 	if(rt == NULL) gen_error("external type could not be created");
 	
-	// create a table for this
-	CREATE_TABLE("externTypeCreate", rt)
-	// push any functions
-	// set the type(s)
-	SET_TABLE_TYPE(L, Member)
-	SET_TABLE_TYPE(L, RType)
+	CREATE_TABLE(L, rt);
+	rt->lua_table(L);
 	
 	// return the table
 	return 1;
@@ -126,12 +103,8 @@ int li_pointer_create(lua_State *L)
 				GET_ARGUMENT_IF_GIVEN_STR(6));
 	if(p == NULL) gen_error("pointer could not be created");
 	
-	// create a table for this
-	CREATE_TABLE("pointer", p)
-	// push any functions
-	// set the type(s)
-	SET_TABLE_TYPE(L, Member)
-	SET_TABLE_TYPE(L, Pointer)
+	CREATE_TABLE(L, p);
+	p->lua_table(L);
 	
 	// return the table
 	return 1;
@@ -154,12 +127,8 @@ int li_object_create(lua_State *L)
 				GET_ARGUMENT_IF_GIVEN_STR(5));
 	if(om == NULL) gen_error("object could not be created");
 	
-	// create a table for this
-	CREATE_TABLE("objectCreate", om)
-	// push any functions
-	// set the type(s)
-	SET_TABLE_TYPE(L, Member)
-	SET_TABLE_TYPE(L, ObjectMember)
+	CREATE_TABLE(L, om);
+	om->lua_table(L);
 	
 	// return the table
 	return 1;
@@ -175,12 +144,8 @@ int li_array_create(lua_State *L)
 	Array *a = new Array(m, GET_ARGUMENT_IF_GIVEN_STR(2));
 	if(a == NULL) gen_error("array could not be created");
 	
-	// create a table for this
-	CREATE_TABLE("arrayCreate", a)
-	// push any functions
-	// set the type(s)
-	SET_TABLE_TYPE(L, Member)
-	SET_TABLE_TYPE(L, Array)
+	CREATE_TABLE(L, a);
+	a->lua_table(L);
 	
 	// return the table
 	return 1;
@@ -203,23 +168,9 @@ int li_type_create(lua_State *L)
 	// now add this type to the module
 	m->objectAdd(new std::string(luaL_checkstring(L, 2)), t);
 	
-	lua_newtable(L);
-	// now push t as the 'data'
-	lua_pushstring(L, "data");
-	lua_pushlightuserdata(L, t);
-	lua_settable(L, -3);
-	
-	// now add all the functions that are supported
-	lua_pushstring(L, "memberAdd");
-	lua_pushcfunction(L, li_type_member_add);
-	lua_settable(L, -3);
-	lua_pushstring(L, "functionCreate");
-	lua_pushcfunction(L, li_type_function_create);
-	lua_settable(L, -3);
-
-	// now set the type to Type
-	SET_TABLE_TYPE(L, Type)
-	
+	CREATE_TABLE(L, t);
+	t->lua_table(L);
+		
 	// now we just return the table :)
 	return 1;
 }
@@ -238,17 +189,8 @@ int li_module_create(lua_State *L)
 	// register the module in the world
 	WORLD->moduleAdd(new std::string(luaL_checkstring(L, 1)), m);
 	
-	// create a table, since this is actually an object
-	lua_newtable(L);
-	// now push m as the 'data'
-	lua_pushstring(L, "data");
-	lua_pushlightuserdata(L, m);
-	lua_settable(L, -3);
-	
-	// now push all the functions that Module supports
-	
-	// now push the string saying this is a module
-	SET_TABLE_TYPE(L, Module)
+	CREATE_TABLE(L, m);
+	m->lua_table(L);
 
 	// now we just return the table :)
 	return 1;

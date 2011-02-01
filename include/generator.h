@@ -31,6 +31,40 @@ void gen_error_r(const char *, const char *, const char *, int) __attribute__((n
 		
 //		fprintf(F, "/* %s:%i %s */", __FILE__, __LINE__, __FUNCTION__); \
 
+#define LUA_SET_TABLE_TYPE(L,T) \
+	lua_pushstring(L, #T); \
+	lua_pushstring(L, "yes"); \
+	lua_settable(L, -3); 
+
+#define LUA_ADD_TABLE_FUNC(L,N,F) \
+	lua_pushstring(L, N); \
+	lua_pushcfunction(L, F); \
+	lua_settable(L, -3);
+
+#define CREATE_TABLE(L,D) \
+	lua_newtable(L); \
+	lua_pushstring(L, "data"); \
+	lua_pushlightuserdata(L, D); \
+	lua_settable(L, -3);
+
+#define SET_TABLE_TYPE(L,T) \
+	lua_pushstring(L, #T); \
+	lua_pushstring(L, "yes"); \
+	lua_settable(L, -3); 
+
+#define LUA_ADD_TABLE_TABLE(L,N,D) \
+	lua_pushstring(L, N); \
+	CREATE_TABLE(L,D) \
+	D->lua_table(L); \
+	lua_settable(L, -3);
+
+extern "C" {
+	int li_type_memberAdd(lua_State *L);
+	int li_type_functionCreate(lua_State *L);
+	int li_function_paramAdd(lua_State *L);
+};
+
+
 namespace generator {
 	class Element;
 	class Object;
@@ -50,10 +84,14 @@ namespace generator {
 			virtual bool genFunctionDefs(FILE *header);
 			virtual bool genLogic(FILE *logic);
 			virtual bool genTemplate(FILE *templ);
+			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L, Element)
+			}
+			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 
 	class Type : public Element {
 		private:
+			typedef Element super;
 			Module *Mod;
 			std::string *Name;
 			bool nolock;
@@ -89,10 +127,16 @@ namespace generator {
 			bool print_disconnect_function(FILE *f);
 			bool needs_referencing() { return (!nolock && !noref); };
 			bool print_connect_function(FILE *f);
+			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Type)
+						LUA_ADD_TABLE_FUNC(L, "memberAdd", li_type_memberAdd);
+						LUA_ADD_TABLE_FUNC(L, "functionCreate", li_type_functionCreate);
+						super::lua_table_r(L); }
+			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 	
 	class Member : public Element {
 		private:
+			typedef Element super;
 			bool init;
 			bool input;
 			std::string *Name;
@@ -113,10 +157,14 @@ namespace generator {
 			virtual bool needs_disconnecting() { return false; };
 			virtual bool print_connect(FILE *logic);
 			virtual bool print_disconnect(FILE *logic);
+			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Member)
+						super::lua_table_r(L); }
+			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 	
 	class Function : public Element {
 		private:
+			typedef Element super;
 			std::map<std::string *, Member *> parameters;
 			std::map<std::string *, Member *>::iterator paramsIterBegin();
 			std::map<std::string *, Member *>::iterator paramsIterEnd();
@@ -130,10 +178,15 @@ namespace generator {
 			virtual bool genFunctionDefs(FILE *header, Module *Mod, Type *t);
 			virtual bool genLogic(FILE *logic, Module *Mod, Type *t);
 			virtual bool genTemplate(FILE *templ, Module *Mod, Type *t);
+			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Function)
+						LUA_ADD_TABLE_FUNC(L, "paramAdd", li_function_paramAdd);
+						super::lua_table_r(L); }
+			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 	
 	class RType : public Member {
 		private:
+			typedef Member super;
 			std::string *TypeName;
 		public:
 			explicit RType(std::string *TypeName, bool init, bool input, std::string *Name, std::string *InitValue) : TypeName(TypeName), Member(init, input, Name, InitValue) {};
@@ -142,10 +195,14 @@ namespace generator {
 			virtual bool genFunctionDefs(FILE *header, Module *Mod, Type *t);
 			virtual bool genLogic(FILE *logic, Module *Mod, Type *t);
 			virtual bool genDestruct(FILE *logic);
+			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,RType)
+						super::lua_table_r(L); }
+			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 	
 	class Pointer : public Member {
 		private:
+			typedef Member super;
 			Member *To;
 			std::string *Destroy;
 		public:
@@ -155,10 +212,14 @@ namespace generator {
 			virtual bool genFunctionDefs(FILE *header, Module *Mod, Type *t);
 			virtual bool genDestruct(FILE *logic);
 			virtual bool genLogic(FILE *logic, Module *Mod, Type *t);
+			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Pointer)
+						super::lua_table_r(L); }
+			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 	
 	class ObjectMember : public Member {
 		private:
+			typedef Member super;
 			Type *Object;
 		public:
 			explicit ObjectMember(Type *object, bool init, bool input, std::string *Name, std::string *InitValue) : Object(object), Member(init, input, Name, InitValue) {};
@@ -167,10 +228,14 @@ namespace generator {
 			virtual bool genFunctionDefs(FILE *header, Module *Mod, Type *t);
 			virtual bool genDestruct(FILE *logic);		
 			virtual bool genLogic(FILE *logic, Module *Mod, Type *t);
+			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,ObjectMember)
+						super::lua_table_r(L); }
+			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 	
 	class Array : public Member {
 		private:
+			typedef Member super;
 			Member *Of;
 		public:
 			explicit Array(Member *of, std::string *Name) : Of(of), Member(false, false, Name, NULL) {};
@@ -180,6 +245,9 @@ namespace generator {
 			virtual bool genFunctionDefs(FILE *header, Module *Mod, Type *t);
 			virtual bool genDestruct(FILE *logic);		
 			virtual bool genLogic(FILE *logic, Module *Mod, Type *t);
+			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Array)
+						super::lua_table_r(L); }
+			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 	
 	class Module {
@@ -201,6 +269,9 @@ namespace generator {
 			std::string *funcPrefix() { return this->FuncPrefix; };
 			std::string *filePrefix() { return this->FilePrefix; };
 			std::string *name() { return this->Name; };
+			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Module)
+						}
+			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 	
 	class World {
