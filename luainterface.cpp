@@ -23,22 +23,28 @@ using namespace generator;
 // bool memberAdd(Type, Member)
 int li_type_memberAdd(lua_State *L)
 {
-	CHECK_COUNT("memberAdd",2)	
+	CHECK_COUNT_MIN("memberAdd",3)
 	CHECK_ARGUMENT_TYPE("memberAdd",1,Type,t)
-	CHECK_ARGUMENT_TYPE("memberAdd",2,Member,m)
+	CHECK_ARGUMENT_TYPE("memberAdd",2,Element,m)
+	CHECK_ARGUMENT("memberAdd",3,string)
+	CHECK_ARGUMENT_IF_GIVEN("memberAdd",4,boolean)
+	CHECK_ARGUMENT_IF_GIVEN("memberAdd",5,boolean)
 
-	lua_pushboolean(L, t->memberAdd(m));
+	lua_pushboolean(L,
+		t->memberAdd(new Member<Element>(m, GET_ARGUMENT_IF_GIVEN(4,boolean,false), GET_ARGUMENT_IF_GIVEN(5,boolean,false)), 
+			new std::string(lua_tostring(L, 3))));
 	return 1;
 }
 
 // bool paramAdd(Function, Member)
 int li_function_paramAdd(lua_State *L)
 {
-	CHECK_COUNT("paramAdd",2)	
+	CHECK_COUNT("paramAdd",3)	
 	CHECK_ARGUMENT_TYPE("paramAdd",1,Function,f)
-	CHECK_ARGUMENT_TYPE("paramAdd",2,Member,m)
+	CHECK_ARGUMENT_TYPE("paramAdd",2,Element,m)
+	CHECK_ARGUMENT("paramAdd",3,string)
 
-	lua_pushboolean(L, f->paramAdd(m));
+	lua_pushboolean(L, f->paramAdd(GET_ARGUMENT_IF_GIVEN_STR(3), new Member<Element>(m)));
 	return 1;
 }
 
@@ -47,7 +53,7 @@ int li_type_functionCreate(lua_State *L)
 {
 	CHECK_COUNT("functionCreate",3)	
 	CHECK_ARGUMENT_TYPE("functionCreate",1,Type,t)
-	CHECK_ARGUMENT_TYPE("functionCreate",3,Member,rt)
+	CHECK_ARGUMENT_TYPE("functionCreate",3,Element,rt)
 
 	Function *f = new Function(GET_ARGUMENT_IF_GIVEN_STR(2), rt);
 
@@ -60,21 +66,13 @@ int li_type_functionCreate(lua_State *L)
 	return 1;
 }
 
-// RType * = externTypeCreate(tname, name, init, input, value)
-int li_extern_type_create(lua_State *L)
+// SystemType * = externTypeCreate(tname)
+int li_system_type_create(lua_State *L)
 {
-	CHECK_COUNT_MIN("externTypeCreate", 2)
+	CHECK_COUNT("externTypeCreate", 1)
 	CHECK_ARGUMENT("externTypeCreate", 1, string)
-	CHECK_ARGUMENT("externTypeCreate", 2, string)
-	CHECK_ARGUMENT_IF_GIVEN("externTypeCreate", 3, boolean)
-	CHECK_ARGUMENT_IF_GIVEN("externTypeCreate", 4, boolean)
-	CHECK_ARGUMENT_IF_GIVEN("externTypeCreate", 5, string)
 
-	RType *rt = new RType(	new std::string(lua_tostring(L, 1)),
-				GET_ARGUMENT_IF_GIVEN(3,boolean,false),
-				GET_ARGUMENT_IF_GIVEN(4,boolean,GET_ARGUMENT_IF_GIVEN(3,boolean,false)),
-				new std::string(lua_tostring(L, 2)),
-				GET_ARGUMENT_IF_GIVEN_STR(5) );
+	SystemType *rt = new SystemType(new std::string(lua_tostring(L, 1)));
 	if(rt == NULL) gen_error("external type could not be created");
 	
 	CREATE_TABLE(L, rt);
@@ -84,23 +82,14 @@ int li_extern_type_create(lua_State *L)
 	return 1;
 }
 
-// Pointer * = pointerCreate(Member, name, destruct, init, input, value)
+// Pointer * = pointerCreate(Member)
 int li_pointer_create(lua_State *L)
 {
-	CHECK_COUNT_MIN("pointerCreate", 3)
-	CHECK_ARGUMENT_TYPE("pointerCreate", 1, Member, m)
+	CHECK_COUNT("pointerCreate", 2)
+	CHECK_ARGUMENT_TYPE("pointerCreate", 1, Element, m)
 	CHECK_ARGUMENT("pointerCreate", 2, string)
-	CHECK_ARGUMENT("pointerCreate", 3, string)
-	CHECK_ARGUMENT_IF_GIVEN("pointerCreate", 4, boolean)
-	CHECK_ARGUMENT_IF_GIVEN("pointerCreate", 5, boolean)
-	CHECK_ARGUMENT_IF_GIVEN("pointerCreate", 6, string)
 	
-	Pointer *p = new Pointer(m,
-				GET_ARGUMENT_IF_GIVEN_STR(2),
-				GET_ARGUMENT_IF_GIVEN_STR(3),
-				GET_ARGUMENT_IF_GIVEN(4,boolean,false),
-				GET_ARGUMENT_IF_GIVEN(5,boolean,GET_ARGUMENT_IF_GIVEN(4,boolean,false)),
-				GET_ARGUMENT_IF_GIVEN_STR(6));
+	Pointer *p = new Pointer(m, GET_ARGUMENT_IF_GIVEN_STR(2));
 	if(p == NULL) gen_error("pointer could not be created");
 	
 	CREATE_TABLE(L, p);
@@ -110,38 +99,13 @@ int li_pointer_create(lua_State *L)
 	return 1;
 }
 
-// ObjectMember * = objectCreate(Type, name, init, input, value)
-int li_object_create(lua_State *L)
-{
-	CHECK_COUNT("objectCreate", 2)
-	CHECK_ARGUMENT_TYPE("objectCreate", 1, Type, t)
-	CHECK_ARGUMENT("objectCreate", 2, string)
-	CHECK_ARGUMENT_IF_GIVEN("objectCreate", 3, boolean)
-	CHECK_ARGUMENT_IF_GIVEN("objectCreate", 4, boolean)
-	CHECK_ARGUMENT_IF_GIVEN("objectCreate", 5, string)
-	
-	ObjectMember *om = new ObjectMember(t,
-				GET_ARGUMENT_IF_GIVEN(3,boolean,false),
-				GET_ARGUMENT_IF_GIVEN(4,boolean,GET_ARGUMENT_IF_GIVEN(3,boolean,false)),
-				GET_ARGUMENT_IF_GIVEN_STR(2),
-				GET_ARGUMENT_IF_GIVEN_STR(5));
-	if(om == NULL) gen_error("object could not be created");
-	
-	CREATE_TABLE(L, om);
-	om->lua_table(L);
-	
-	// return the table
-	return 1;
-}
-
 // Array * = arrayCreate(Member, init, input, name)
 int li_array_create(lua_State *L)
 {
-	CHECK_COUNT("arrayCreate", 2)
-	CHECK_ARGUMENT_TYPE("arrayCreate", 1, Member, m)
-	CHECK_ARGUMENT("arrayCreate", 2, string)
+	CHECK_COUNT("arrayCreate", 1)
+	CHECK_ARGUMENT_TYPE("arrayCreate", 1, Element, m)
 	
-	Array *a = new Array(m, GET_ARGUMENT_IF_GIVEN_STR(2));
+	Array *a = new Array(m);
 	if(a == NULL) gen_error("array could not be created");
 	
 	CREATE_TABLE(L, a);
@@ -151,8 +115,8 @@ int li_array_create(lua_State *L)
 	return 1;
 }
 
-// type *t = typeCreate(Module, name)
-int li_type_create(lua_State *L)
+// type *t = Module:typeCreate(name)
+int li_module_type_create(lua_State *L)
 {
 	CHECK_COUNT("typeCreate",2)
 	CHECK_ARGUMENT("typeCreate",2,string)
@@ -174,6 +138,19 @@ int li_type_create(lua_State *L)
 	// now we just return the table :)
 	return 1;
 }
+
+// bool = Module:addInclude(string)
+int li_module_include_add(lua_State *L)
+{
+	CHECK_COUNT("addInclude", 2);
+	CHECK_ARGUMENT_TYPE("addInclude", 1, Module, m)
+	CHECK_ARGUMENT("addInclude",2,string)
+	
+	lua_pushboolean(L, m->includeAdd(GET_ARGUMENT_IF_GIVEN_STR(2)));
+	
+	return 1;
+}
+
 
 // module *m = moduleCreate(name, path, file_prefix, function_prefix)
 int li_module_create(lua_State *L)
@@ -199,14 +176,11 @@ int li_module_create(lua_State *L)
 void generator::luaopen_process(lua_State *state)
 {
 	lua_register(state, "moduleCreate", li_module_create);
-	lua_register(state, "typeCreate", li_type_create);
-	
-	// RType * = externTypeCreate(tname, name, init, input)
-	lua_register(state, "externTypeCreate", li_extern_type_create);
-	// Pointer * = pointerCreate(Member, name, init, input)
-	lua_register(state, "pointerCreate", li_pointer_create);
-	// ObjectMember * = objectCreate(Type, name, init, input)
-	lua_register(state, "objectCreate", li_object_create);
-	// Array * = arrayCreate(Member, name, init, input)
-	lua_register(state, "arrayCreate", li_array_create);
+
+	// RType * = newSystemType(tname, name, init, input)
+	lua_register(state, "newSystemType", li_system_type_create);
+	// Pointer * = newPointer(Member, name, init, input)
+	lua_register(state, "newPointer", li_pointer_create);
+	// Array * = newArray(Member, name, init, input)
+	lua_register(state, "newArray", li_array_create);
 }

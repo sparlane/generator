@@ -2,42 +2,85 @@
 
 using namespace generator;
 
-bool RType::genType(FILE *header)
+bool SystemType::genType(std::ostream& header)
 {
-	print_to_file(header, "%s", this->TypeName->c_str());
+	header << this->TypeName;
 	return true;
 }
 
-bool RType::genSetFunctionDef(FILE *header, Module *Mod, Type *t)
+bool SystemType::genStruct(std::ostream& header, std::string name)
 {
-	print_to_file(header, "bool %s%s_%s_set(%s o, %s v)", Mod->funcPrefix()->c_str(), t->name()->c_str(), this->name()->c_str(), t->name()->c_str(), this->TypeName->c_str());
+	header << this->TypeName << " " << name;
 	return true;
 }
 
-bool RType::genFunctionDefs(FILE *header, Module *Mod, Type *t)
+bool SystemType::genSetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t)
 {
-	if(!genSetFunctionDef(header, Mod, t)) return false;
-	print_to_file(header, ";\n");
+	header << "bool " << Mod->funcPrefix() << t->name() << "_" << name << "_set(";
+	t->genStruct(header, "o");
+	header << ", ";
+	this->genStruct(header, "v");
+	header << ")";
 	return true;
 }
 
-bool RType::genLogic(FILE *logic, Module *Mod, Type *t)
+bool SystemType::genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t)
 {
-	genSetFunctionDef(logic, Mod, t);
-	print_to_file(logic, "\n{\n");
+	this->genType(header);
+	header << " " << Mod->funcPrefix() << t->name() << "_" << name << "_get(";
+	t->genStruct(header, "o");
+	header << ")";
+	return true;
+}
+
+bool SystemType::genFunctionDefs(std::ostream& header, std::string *name, Module *Mod, Type *t)
+{
+	if(!genSetFunctionDef(header, name, Mod, t)) return false;
+	header << ";" << std::endl;
+	if(!genGetFunctionDef(header, name, Mod, t)) return false;
+	header << ";" << std::endl;
+	return true;
+}
+
+bool SystemType::genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t)
+{
+	genSetFunctionDef(logic, name, Mod, t);
+	logic << std::endl;
+	logic << "{" << std::endl;
 	
 	t->lock_code_print(logic, false);
 	
-	print_to_file(logic, "\to->%s = v;\n\n", this->name()->c_str());
+	logic << "\to->" << name << " = v;" << std::endl;
+	logic << std::endl;
 
 	t->unlock_code_print(logic);
 
-	print_to_file(logic, "\treturn true;\n");
-	print_to_file(logic, "}\n\n");
+	logic << "\treturn true;" << std::endl;
+	logic << "}" << std::endl;
+	logic << std::endl;
+
+	genGetFunctionDef(logic, name, Mod, t);
+	logic << std::endl;
+	logic << "{" << std::endl;
+	
+	t->lock_code_print(logic, false);
+	
+	logic << "\t";
+	t->genStruct(logic, "res");
+	
+	logic << "\tres = o->" << name << std::endl;
+	logic << std::endl;
+
+	t->unlock_code_print(logic);
+
+	logic << "\treturn res;" << std::endl;
+	logic << "}" << std::endl;
+	logic << std::endl;
+
 	return true;
 }
 
-bool RType::genDestruct(FILE *logic)
+bool SystemType::genDestruct(std::ostream& logic, std::string *name)
 {
 	return true;
 }

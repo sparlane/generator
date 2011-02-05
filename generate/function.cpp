@@ -3,82 +3,87 @@
 using namespace generator;
 using namespace std;
 
-std::map<std::string *, Member *>::iterator Function::paramsIterBegin()
+std::map<std::string *, Member<Element> *>::iterator Function::paramsIterBegin()
 {
 	return this->parameters.begin();
 }
 
-std::map<std::string *, Member *>::iterator Function::paramsIterEnd()
+std::map<std::string *, Member<Element> *>::iterator Function::paramsIterEnd()
 {
 	return this->parameters.end();
 }
 
-bool Function::paramAdd(Member *m)
+bool Function::paramAdd(std::string *name, Member<Element> *m)
 {
-	this->parameters.insert(std::pair<std::string *, Member *>(m->name(), m));
+	this->parameters.insert(std::make_pair(name, m));
 	return true;
 }
 
-bool Function::genFunctionDef(FILE *f, Module *Mod, Type *t, bool tpl, bool type)
+bool Function::genFunctionDef(std::ostream &of, Module *Mod, Type *t, bool tpl, bool type)
 {
-	std::map<std::string *, Member *>::iterator pcurr = paramsIterBegin();
-	std::map<std::string *, Member *>::iterator pend = paramsIterEnd();
+	std::map<std::string *, Member<Element> *>::iterator pcurr = paramsIterBegin();
+	std::map<std::string *, Member<Element> *>::iterator pend = paramsIterEnd();
 
-	if(type)
-		this->ReturnType->genType(f);
-	print_to_file(f, " %s%s_%s%s(%s o", Mod->funcPrefix()->c_str(), t->name()->c_str(), this->name()->c_str(), (tpl) ? "_s" : "", t->name()->c_str());
+	this->ReturnType->genType(of);
+
+	of << " " << Mod->funcPrefix() << t->name() << "_" << this->name();
+	if(tpl)
+		of << "_s";
+	of << "(";
+	t->genStruct(of, "o");
+
 	for( ; pcurr != pend; ++pcurr)
 	{
-		if(pcurr->second->isInit())
-		{
-			print_to_file(f, ", ");
-			if(!pcurr->second->genStruct(f)) return false;
-		}
+		of << ", ";
+		if(!pcurr->second->genStruct(of, *pcurr->first)) return false;
 	}
-	print_to_file(f, ")");
+	of << ")";
 	return true;
 }
 
-bool Function::genFunctionDefs(FILE *header, Module *Mod, Type *t)
+bool Function::genFunctionDefs(std::ostream& of, Module *Mod, Type *t)
 {
-	this->genFunctionDef(header, Mod, t, false, true);
-	print_to_file(header, ";");
+	this->genFunctionDef(of, Mod, t, false, true);
+	of << ";" << std::endl;
 	return true;
 }
 
-bool Function::genLogic(FILE *logic, Module *Mod, Type *t)
+bool Function::genLogic(std::ostream& logic, Module *Mod, Type *t)
 {	
 	this->genFunctionDef(logic, Mod, t, false, true);
-	print_to_file(logic, "\n{\n");
+	logic << std::endl;
+	logic << "{" << std::endl;
 	
 	t->lock_code_print(logic, false);
 
-	print_to_file(logic, "\t");
+	logic << "\t";
 	this->ReturnType->genType(logic);
-	print_to_file(logic, " res = ");
+	logic << " res = ";
 	this->genFunctionDef(logic, Mod, t, true, false);
-	print_to_file(logic, ";\n");
+	logic << ";" << std::endl;
 
 	t->unlock_code_print(logic);
 
-	print_to_file(logic, "\treturn res;\n");
-	print_to_file(logic, "}\n");
+	logic << "\treturn res;" << std::endl;
+	logic << "}" << std::endl;
 	
 	return true;
 }
 
-bool Function::genTemplate(FILE *logic, Module *Mod, Type *t)
+bool Function::genTemplate(std::ostream& logic, Module *Mod, Type *t)
 {
 	this->genFunctionDef(logic, Mod, t, true, true);
-	print_to_file(logic, "\n{\n");
+	logic << std::endl;
+	logic << "{" << std::endl;
 
-	print_to_file(logic, "\t");
+	logic << "\t";
 	this->ReturnType->genType(logic);
-	print_to_file(logic, " res = /* SOME VALUE */;\n");
+	logic << " res = /* SOME VALUE */;" << std::endl;
 	
-	print_to_file(logic, "/* Insert Your CODE HERE */\n");
+	logic << "/* Insert Your CODE HERE */" << std::endl;
 	
-	print_to_file(logic, "\treturn res;\n");
-	print_to_file(logic, "}\n\n");
+	logic << "\treturn res;" << std::endl;
+	logic << "}" << std::endl;
+	logic << std::endl;
 	return true;
 }

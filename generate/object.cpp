@@ -3,135 +3,132 @@
 using namespace generator;
 using namespace std;
 
-bool Type::create_def_print(FILE *f)
+bool Type::create_def_print(std::ostream& f)
 {
-	std::map<std::string *, Member *>::iterator mcurr = memberIterBegin();
-	std::map<std::string *, Member *>::iterator mend = memberIterEnd();
+	std::map<std::string *, Member<Element > *>::iterator mcurr = memberIterBegin();
+	std::map<std::string *, Member<Element > *>::iterator mend = memberIterEnd();
 
-	print_to_file(f, "%s %s%s_create(", this->Name->c_str(), Mod->funcPrefix()->c_str(), this->Name->c_str());
+	f << this->Name << " " << Mod->funcPrefix() << this->Name << "_create(";
 	int count = 0;
 	for( ; mcurr != mend; ++mcurr)
 	{
 		if(mcurr->second->isInit())
 		{
 			if(count != 0)
-			print_to_file(f, " ,");
-			if(!mcurr->second->genStruct(f)) return false;
+			f << " ,";
+			if(!mcurr->second->genStruct(f, *mcurr->first)) return false;
 			count++;
 		}
 	}
 	if(count == 0)
-		print_to_file(f, "void");
-	print_to_file(f, ")");
+		f << "void";
+	f << ")";
 	return true;
 }
 
-bool Type::destroy_def_print(FILE *f)
+bool Type::func_def_print(std::ostream& f, std::string fname)
 {
-	print_to_file(f, "bool %s%s_destroy(%s o)", Mod->funcPrefix()->c_str(), this->Name->c_str(), this->Name->c_str());
+	f << "bool " << Mod->funcPrefix() << this->Name << "_" << fname << "(" << this->Name << " o)";
 	return true;
 }
 
-bool Type::ref_def_print(FILE *f)
+bool Type::print_disconnect(std::ostream& f)
 {
-	print_to_file(f, "bool %s%s_ref(%s o)", Mod->funcPrefix()->c_str(), this->Name->c_str(), this->Name->c_str());
-	return true;
-}
-
-bool Type::unref_def_print(FILE *f)
-{
-	print_to_file(f, "bool %s%s_unref(%s o)", Mod->funcPrefix()->c_str(), this->Name->c_str(), this->Name->c_str());	
-	return true;
-}
-
-bool Type::print_disconnect_function(FILE *f)
-{
-	print_to_file(f, "%s%s_%s", Mod->funcPrefix()->c_str(), this->Name->c_str(), (nolock && noref) ? "destroy" : "unref");
+	f << Mod->funcPrefix() << this->Name << "_" << ((nolock && noref) ? "destroy" : "unref");
 	return true;	
 }
 
-bool Type::print_connect_function(FILE *f)
+bool Type::print_connect(std::ostream& f)
 {
-	print_to_file(f, "%s%s_ref", Mod->funcPrefix()->c_str(), this->Name->c_str());
+	f << Mod->funcPrefix() << this->Name << "_ref";
 	return true;	
 }
 
-bool Type::lock_code_print(FILE *f, bool null)
+bool Type::lock_code_print(std::ostream& f, bool null)
 {
 	if(!nolock)
 	{
-		print_to_file(f, "\t{\n\t\tint lock_res = pthread_mutex_lock(&o->lock);\n");
-		print_to_file(f, "\t\tif(lock_res != 0) return %s;\n", (null) ? "NULL" : "false");
-		print_to_file(f, "\t\tif(o->destroyed)\n\t\t{\n\t\t\tpthread_mutex_unlock(&o->lock);\n\t\t\treturn %s;\n\t\t}\n\t}\n\n", null ? "NULL" : "false");
+		f << "\t{\n\t\tint lock_res = pthread_mutex_lock(&o->lock);" << std::endl;
+		f << "\t\tif(lock_res != 0) return " << ((null) ? "NULL" : "false") << ";" << std::endl;
+		f << "\t\tif(o->destroyed)" << std::endl;
+		f << "\t\t{\n\t\t\tpthread_mutex_unlock(&o->lock);\n\t\t\treturn " << (null ? "NULL" : "false") << ";\n\t\t}\n\t}\n\n";
 	}
 	return true;
 }
 
-bool Type::unlock_code_print(FILE *f)
+bool Type::unlock_code_print(std::ostream& f)
 {
 	if(!nolock)
-		print_to_file(f, "\t{\n\t\t/* int lock_res = */ pthread_mutex_unlock(&o->lock);\n\t}\n\n");
+	{
+		f << "\t{" << std::endl;
+		f << "\t\t/* int lock_res = */ pthread_mutex_unlock(&o->lock);" << std::endl;
+		f << "\t}" << std::endl;
+		f << std::endl;
+	}
 	return true;
 }
 
-bool Type::destroy_lock_code_print(FILE *f)
+bool Type::destroy_lock_code_print(std::ostream& f)
 {
 	if(!nolock)
-	print_to_file(f, "\tpthread_mutex_destroy(&o->lock);\n");
+	f << "\tpthread_mutex_destroy(&o->lock);" << std::endl;
 	return true;
 }
 
-bool Type::create_func_print(FILE *f)
+bool Type::create_func_print(std::ostream& f)
 {
-	std::map<std::string *, Member *>::iterator mcurr = memberIterBegin();
-	std::map<std::string *, Member *>::iterator mend = memberIterEnd();
+	std::map<std::string *, Member<Element> *>::iterator mcurr = memberIterBegin();
+	std::map<std::string *, Member<Element> *>::iterator mend = memberIterEnd();
 
-	print_to_file(f, " /* Create a %s */\n", this->Name->c_str());
-	print_to_file(f, "{\n");
-	print_to_file(f, "\t%s o = calloc(1, sizeof(struct %s_s));\n", this->Name->c_str(), this->Name->c_str());
-	print_to_file(f, "\tif(o == NULL) goto ERROR_EARLY;\n\n");
+	f << " /* Create a " << this->Name << " */" << std::endl;
+	f << "{" << std::endl;
+	f << "\t" << this->Name << " o = calloc(1, sizeof(struct " << this->Name << "_s));" << std::endl;
+	f << "\tif(o == NULL) goto ERROR_EARLY;\n" << std::endl;
 	
 	if(!nolock)
 	{
-		print_to_file(f, "\tpthread_mutexattr_t mutex_attr;\n\tif(pthread_mutexattr_init(&mutex_attr) != 0) goto ERROR_LOCK;\n");
-		print_to_file(f, "\tif(pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK) != 0) goto ERROR_LOCK;\n");
-		print_to_file(f, "\tif(pthread_mutex_init(&o->lock, &mutex_attr) != 0) goto ERROR_LOCK;\n\n");
+		f << "\tpthread_mutexattr_t mutex_attr;\n\tif(pthread_mutexattr_init(&mutex_attr) != 0) goto ERROR_LOCK;" << std::endl;
+		f << "\tif(pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK) != 0) goto ERROR_LOCK;" << std::endl;
+		f << "\tif(pthread_mutex_init(&o->lock, &mutex_attr) != 0) goto ERROR_LOCK;\n" << std::endl;
 		
 		if(!noref)
-			print_to_file(f, "\to->references = 1;\n\n");
+		{
+			f << "\to->references = 1;" << std::endl;
+			f << std::endl;
+		}
 	}
 	
 	for(; mcurr != mend; ++mcurr)
 	{
 		if(mcurr->second->isInit())
 		{
-			if(mcurr->second->isInput())
-			{
-				print_to_file(f, "\to->%s = %s;\n", mcurr->first->c_str(), mcurr->first->c_str());
-			} else {
-				print_to_file(f, "\to->%s = %s;\n", mcurr->first->c_str(), mcurr->second->initValue()->c_str());
-			}
+			f << "\to->" << mcurr->first << " = ";
+			f << ((mcurr->second->isInput()) ? *mcurr->first : mcurr->second->get()->initValue());
+			f << ";" << std::endl;
 		}
 	}
 	
 	if(!nolock)
 	{
-		print_to_file(f, "ERROR_LOCK:\n");
-		print_to_file(f, "\tfree(o);\n"); 
+		f << "ERROR_LOCK:" << std::endl;
+		f << "\tfree(o);" << std::endl; 
 	}
-	print_to_file(f, "ERROR_EARLY:\n");
-	print_to_file(f, "\treturn NULL;\n}\n\n");
+	f << "ERROR_EARLY:" << std::endl;
+	f << "\treturn NULL;" << std::endl;
+	f << "}" << std::endl;
+	f << std::endl;
 	return true;
 }
 
-bool Type::destroy_func_print(FILE *f)
+bool Type::destroy_func_print(std::ostream& f)
 {
-	std::map<std::string *, Member *>::iterator mcurr = memberIterBegin();
-	std::map<std::string *, Member *>::iterator mend = memberIterEnd();
+	std::map<std::string *, Member<Element> *>::iterator mcurr = memberIterBegin();
+	std::map<std::string *, Member<Element> *>::iterator mend = memberIterEnd();
 
-	print_to_file(f, " /* Destroy a %s */\n", this->Name->c_str());
-	print_to_file(f, "{\n");
-	print_to_file(f, "\tif(o == NULL) return false;\n\n");
+	f << " /* Destroy a " << this->Name << " */" << std::endl;
+	f << "{" << std::endl;
+	f << "\tif(o == NULL) return false;" << std::endl
+		<< std::endl;
 
 	if(noref)
 	{
@@ -141,46 +138,55 @@ bool Type::destroy_func_print(FILE *f)
 	for(; mcurr != mend; ++mcurr)
 	{
 		if(mcurr->second != NULL)
-			if(!mcurr->second->genDestruct(f)) return false;
+			if(!mcurr->second->genDestruct(f, mcurr->first)) return false;
 	}
 	
 	if(!unlock_code_print(f)) return false;
 	if(!destroy_lock_code_print(f)) return false;
 	
-	print_to_file(f, "\tfree(o);\n");
-	print_to_file(f, "\treturn true;\n}\n\n");
+	f << "\tfree(o);" << std::endl;
+	f << "\treturn true;" << std::endl;
+	f << "}" << std::endl;
+	f << std::endl;
 	return true;
 }
 
-bool Type::ref_func_print(FILE *f)
+bool Type::ref_func_print(std::ostream& f)
 {
-	print_to_file(f, " /* Reference a %s */\n", this->Name->c_str());
-	print_to_file(f, "{\n");
+	f << " /* Reference a " << this->Name << " */" << std::endl;
+	f << "{" << std::endl;
 	if(!lock_code_print(f, false)) return false;
-	print_to_file(f, "\to->references++;\n\n");
+	f << "\to->references++;" << std::endl;
+	f << std::endl;
 	if(!unlock_code_print(f)) return false;
-	print_to_file(f, "\treturn true;\n}\n\n");
+	f << "\treturn true;" << std::endl;
+	f << "}" << std::endl;
+	f << std::endl;
 	return true;
 }
 
-bool Type::unref_func_print(FILE *f)
+bool Type::unref_func_print(std::ostream& f)
 {
-	print_to_file(f, " /* Unreference a %s */\n", this->Name->c_str());
-	print_to_file(f, "{\n");
+	f << " /* Unreference a " << this->Name << " */" << std::endl;
+	f << "{" << std::endl;
 	if(!lock_code_print(f, false)) return false;
-	print_to_file(f, "\to->references--;\n\n");
-	print_to_file(f, "\tif(o->references == 0) return %s%s_destroy(o);\n\n", Mod->funcPrefix()->c_str(), this->Name->c_str());
+	f << "\to->references--;" << std::endl;
+	f << std::endl;
+	f << "\tif(o->references == 0) return " << Mod->funcPrefix() << this->Name << "_destroy(o);" << std::endl;
+	f << std::endl;
 	if(!unlock_code_print(f)) return false;
-	print_to_file(f, "\treturn true;\n}\n\n");
+	f << "\treturn true;" << std::endl;
+	f << "}" << std::endl;
+	f << std::endl;
 	return true;
 }
 
-std::map<std::string *, Member *>::iterator Type::memberIterBegin()
+std::map<std::string *, Member<Element> *>::iterator Type::memberIterBegin()
 {
 	return this->members.begin();
 }
 
-std::map<std::string *, Member *>::iterator Type::memberIterEnd()
+std::map<std::string *, Member<Element> *>::iterator Type::memberIterEnd()
 {
 	return this->members.end();
 }
@@ -195,54 +201,56 @@ std::map<std::string *, Function *>::iterator Type::functionIterEnd()
 	return this->functions.end();
 }
 
-bool Type::genStruct(FILE *header)
+bool Type::genStruct(std::ostream& header)
 {
-	std::map<std::string *, Member *>::iterator curr = memberIterBegin();
-	std::map<std::string *, Member *>::iterator end = memberIterEnd();
+	std::map<std::string *, Member<Element> *>::iterator curr = memberIterBegin();
+	std::map<std::string *, Member<Element> *>::iterator end = memberIterEnd();
 	
-	print_to_file(header, "\tbool destroyed;\n");
+	header << "\tbool destroyed;" << std::endl;
 	if(!this->nolock)
 	{
-		print_to_file(header, "\tpthread_mutex_t lock;\n");
+		header << "\tpthread_mutex_t lock;" << std::endl;
 		if(!noref)
 		{
-			print_to_file(header, "\tunsigned int references;\n");
+			header << "\tunsigned int references;" << std::endl;
 		}
 	}
 	
 	for( ; curr != end; ++curr)
 	{
-		if(!curr->second->genStruct(header)) return false;
+		header << "\t";
+		if(!curr->second->genStruct(header, *curr->first)) return false;
+		header << ";" << std::endl;
 	}
 	return true;
 }
 
-bool Type::genFunctionDefs(FILE *header, Module *Mod)
+bool Type::genFunctionDefs(std::ostream& header, Module *Mod)
 {
 	std::map<std::string *, Function *>::iterator fcurr = functionIterBegin();
 	std::map<std::string *, Function *>::iterator fend = functionIterEnd();
-	std::map<std::string *, Member *>::iterator mcurr = memberIterBegin();
-	std::map<std::string *, Member *>::iterator mend = memberIterEnd();
+	std::map<std::string *, Member<Element> *>::iterator mcurr = memberIterBegin();
+	std::map<std::string *, Member<Element> *>::iterator mend = memberIterEnd();
 
 	// Constructor
 	if(!create_def_print(header)) return false;
-	print_to_file(header, " __attribute__((__warn_unused_result__));\n");
+	header << " __attribute__((__warn_unused_result__));" << std::endl;
 	if(!nolock && !noref)
 	{ // Reference counters
-		if(!ref_def_print(header)) return false;
-		print_to_file(header, " __attribute__((__warn_unused_result__));\n");
-		if(!unref_def_print(header)) return false;
-		print_to_file(header, " __attribute__((__warn_unused_result__));\n");
+		if(!func_def_print(header, "ref")) return false;
+		header << " __attribute__((__warn_unused_result__));" << std::endl;
+		if(!func_def_print(header, "unref")) return false;
+		header << " __attribute__((__warn_unused_result__));" << std::endl;
 	} else { // Destructor
-		if(!destroy_def_print(header)) return false;
-		print_to_file(header, " __attribute__((__warn_unused_result__));\n");
+		if(!func_def_print(header, "destroy")) return false;
+		header << " __attribute__((__warn_unused_result__));" << std::endl;
 	}
 	
 	for( mcurr = memberIterBegin(); mcurr != mend; ++mcurr)
 	{
 		if(!mcurr->second->isInit())
 		{
-			if(!mcurr->second->genFunctionDefs(header, Mod, this)) return false;
+			if(!mcurr->second->genFunctionDefs(header, mcurr->first, Mod, this)) return false;
 		}
 	}
 	
@@ -251,16 +259,16 @@ bool Type::genFunctionDefs(FILE *header, Module *Mod)
 		if(!fcurr->second->genFunctionDefs(header, Mod, this)) return false;	
 	}
 	
-	print_to_file(header, "\n");
+	header << std::endl;
 	return true;
 }
 
-bool Type::genLogic(FILE *logic)
+bool Type::genLogic(std::ostream& logic)
 {
 	std::map<std::string *, Function *>::iterator fcurr = functionIterBegin();
 	std::map<std::string *, Function *>::iterator fend = functionIterEnd();
-	std::map<std::string *, Member *>::iterator mcurr = memberIterBegin();
-	std::map<std::string *, Member *>::iterator mend = memberIterEnd();
+	std::map<std::string *, Member<Element> *>::iterator mcurr = memberIterBegin();
+	std::map<std::string *, Member<Element> *>::iterator mend = memberIterEnd();
 
 	// Generate the constructor
 	if(!create_def_print(logic)) return false;
@@ -268,15 +276,15 @@ bool Type::genLogic(FILE *logic)
 	
 	// Generate the destructor
 	if(!nolock && !noref)
-		print_to_file(logic, "static ");
-	if(!destroy_def_print(logic)) return false;
+		logic << "static ";
+	if(!func_def_print(logic, "destroy")) return false;
 	if(!destroy_func_print(logic)) return false;
 	if(!nolock && !noref)
 	{
-		if(!ref_def_print(logic)) return false;
+		if(!func_def_print(logic, "ref")) return false;
 		if(!ref_func_print(logic)) return false;
 	
-		if(!unref_def_print(logic)) return false;
+		if(!func_def_print(logic, "unref")) return false;
 		if(!unref_func_print(logic)) return false;
 	}
 
@@ -284,20 +292,21 @@ bool Type::genLogic(FILE *logic)
 	{
 		if(!mcurr->second->isInit())
 		{
-			if(!mcurr->second->genLogic(logic, Mod, this)) return false;
+			if(!mcurr->second->genLogic(logic, mcurr->first, Mod, this)) return false;
 		}
 	}
 	
-	if(fcurr != fend) print_to_file(logic, "#include <%s%s_%s_logic.c>\n\n", Mod->filePrefix()->c_str(), Mod->name()->c_str(), this->Name->c_str());
+	if(fcurr != fend) logic << "#include <" << Mod->filePrefix() << Mod->name() << "_" << this->Name << "_logic.c>" << std::endl << std::endl;
 	
 	for( ; fcurr != fend; ++fcurr)
 	{
 		if(!fcurr->second->genLogic(logic, Mod, this)) return false;	
 	}
+
 	return true;
 }
 
-bool Type::genTemplate(FILE *templ)
+bool Type::genTemplate(std::ostream& templ)
 {
 	std::map<std::string *, Function *>::iterator fcurr = functionIterBegin();
 	std::map<std::string *, Function *>::iterator fend = functionIterEnd();
@@ -310,14 +319,127 @@ bool Type::genTemplate(FILE *templ)
 	return true;
 }
 
-bool Type::memberAdd(Member *m)
+bool Type::memberAdd(Member<Element> *m, std::string *name)
 {
-	this->members.insert(std::pair<std::string *, Member *>(m->name(), m));
+	this->members.insert(std::make_pair(name, m));
 	return true;
 }
 
 bool Type::functionAdd(Function *f)
 {
 	this->functions.insert(std::pair<std::string *, Function *>(f->name(), f));
+	return true;
+}
+
+bool Type::genType(std::ostream& header)
+{
+	header << this->Name;
+	return true;
+}
+
+bool Type::genStruct(std::ostream& header, std::string name)
+{
+	header << this->Mod->funcPrefix() << this->Name << " " << name;
+	return true;
+}
+
+bool Type::genSetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t)
+{
+	header << "bool " << Mod->funcPrefix() << name << "_set(";
+	t->genStruct(header, "o");
+	header << ", ";
+	this->genStruct(header, "v");
+	header << ")";
+	return true;
+}
+
+bool Type::genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t)
+{
+	this->genType(header);
+	header << " " << Mod->funcPrefix() << name << "_get(";
+	t->genStruct(header, "o");
+	header << ")";
+	return true;
+}
+
+bool Type::genFunctionDefs(std::ostream& header, std::string *name, Module *Mod, Type *t)
+{
+	this->genSetFunctionDef(header, name, Mod, t);
+	header << ";" << std::endl;
+	this->genGetFunctionDef(header, name, Mod, t);
+	header << ";" << std::endl;
+	return true;
+}
+
+bool Type::genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t)
+{
+	this->genSetFunctionDef(logic, name, Mod, t);
+	logic << std::endl;
+	logic << "{" << std::endl;
+	
+	t->lock_code_print(logic, false);
+	
+	logic << "\tif(o->" << name << " != NULL)" << std::endl;
+	logic << "\t{" << std::endl;
+	logic << "\t\t";
+	this->print_disconnect(logic);
+	logic << "(o->" << name << ");" << std::endl;
+	logic << "\t\to->" << name << " = NULL;" << std::endl;
+	logic << "\t}" << std::endl;
+	logic << std::endl;
+
+	logic << "\to->" << name << " = v;" << std::endl;
+	logic << std::endl;
+
+	if(this->needs_referencing())
+	{
+		logic << "\tif(o->" << name << " != NULL)" << std::endl;
+		logic << "\t{" << std::endl;
+		logic << "\t\t";
+		this->print_connect(logic);
+		logic << "(o->" << name << ");" << std::endl;
+		logic << "\t}" << std::endl;
+	}
+	
+	t->unlock_code_print(logic);
+
+	logic << "\treturn true;" << std::endl;
+	
+	logic << "}" << std::endl;
+	logic << std::endl;
+
+	this->genSetFunctionDef(logic, name, Mod, t);
+	logic << std::endl;
+	logic << "{" << std::endl;
+	
+	t->lock_code_print(logic, false);
+	
+	logic << "\t";
+	this->genType(logic);
+	logic << " res = o->" << name << ";" << std::endl;
+
+	if(this->needs_referencing())
+	{
+		logic << "\tif(res != NULL)" << std::endl;
+		logic << "\t{" << std::endl;
+		logic << "\t\t";
+		this->print_connect(logic);
+		logic << "(res);" << std::endl;
+		logic << "\t}" << std::endl;
+		logic << std::endl;
+	}
+	
+	t->unlock_code_print(logic);
+
+	logic << "\treturn res;" << std::endl;
+	
+	logic << "}" << std::endl;
+	logic << std::endl;
+
+	return true;
+}
+
+bool Type::genDestruct(std::ostream& logic, std::string *name)
+{
 	return true;
 }

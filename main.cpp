@@ -17,6 +17,12 @@ static void print_usage(const char *name)
 	exit(EXIT_FAILURE);
 }
 
+std::ostream& operator<<(std::ostream& os, std::string *str)
+{
+	os << *str;
+	return os;
+}
+
 int main(int argc, char *argv[])
 {
 	if(argc <= 1)

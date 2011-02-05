@@ -1,15 +1,20 @@
 m = moduleCreate('scott', 'lib', 'us_', 'us_')
-t = typeCreate(m, 'test')
+t = m:newType('test')
 
-t:memberAdd(externTypeCreate('int', 'test'))
-t:memberAdd(pointerCreate(externTypeCreate('int', ''), 'scott', 'free'))
+t:memberAdd(newSystemType('int'), 'test')
+t:memberAdd(newPointer(newSystemType('int'), 'free'), 'scott')
 
-t2 = typeCreate(m, 'test2')
+t2 = m:newType('test2')
 
-t2:memberAdd(objectCreate(t, 't'))
+t2:memberAdd(t, 't')
 
-t3 = typeCreate(m, 'arrayTest')
-t3:memberAdd(arrayCreate(externTypeCreate('int',''), 'a'))
+t3 = m:newType('arrayTest')
+t3:memberAdd(newArray(newSystemType('int')), 'a')
 
-f = t3:functionCreate('scott',externTypeCreate('bool',''))
-f:paramAdd(objectCreate(t,'t'))
+f = t3:functionCreate('scott',newSystemType('bool'))
+f:paramAdd(t,'t')
+
+m:addInclude('tester.h')
+
+t4 = m:newType('arrayTest2')
+t4:memberAdd(newArray(t3), 'testA')

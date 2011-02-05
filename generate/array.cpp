@@ -2,79 +2,128 @@
 
 using namespace generator;
 
-bool Array::genType(FILE *header)
+bool Array::genType(std::ostream& header)
 {
 	std::cerr << "Array::getType is invalid" << std::endl;
 	return false;
 }
 
-bool Array::genStruct(FILE *header)
+bool Array::genStruct(std::ostream& header, std::string name)
 {
-	print_to_file(header, "\t");
 	this->Of->genType(header);
-	print_to_file(header, " *%s;\n", this->name()->c_str());
-	print_to_file(header, "\tsize_t %s_size;\n", this->name()->c_str());
+	header << " *" << name << ";" << std::endl;
+	header << "\tsize_t " << name << "_size";
 	return true;
 }
 
-bool Array::genAddFunctionDef(FILE *header, Module *Mod, Type *t)
+bool Array::genAddFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t)
 {
-	print_to_file(header, "bool %s%s_%s_add(%s o, ", Mod->funcPrefix()->c_str(), t->name()->c_str(), this->name()->c_str(), t->name()->c_str());
+	header << "bool " << Mod->funcPrefix() << t->name() << "_" << name << "_add(";
+	t->genStruct(header, "o");
+	header << ", ";
+	this->Of->genStruct(header, "v");
+	header << ")";
+	return true;
+}
+
+bool Array::genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t)
+{
 	this->Of->genType(header);
-	print_to_file(header, " v)");
+	header << " " << Mod->funcPrefix() << t->name() << "_" << name << "_get(";
+	t->genStruct(header, "o");
+	header << ", size_t idx)";
 	return true;
 }
 
-bool Array::genFunctionDefs(FILE *header, Module *Mod, Type *t)
+bool Array::genFunctionDefs(std::ostream& header, std::string *name, Module *Mod, Type *t)
 {
-	this->genAddFunctionDef(header, Mod, t);
-	print_to_file(header, ";\n");
+	this->genAddFunctionDef(header, name, Mod, t);
+	header << ";" << std::endl;
+	this->genGetFunctionDef(header, name, Mod, t);
+	header << ";" << std::endl;
 	return true;
 }
 
-bool Array::genDestruct(FILE *logic)
+bool Array::genDestruct(std::ostream& logic, std::string *name)
 {
-	print_to_file(logic, "\tif(o->%s != NULL)\n\t{\n", this->name()->c_str());
+	logic << "\tif(o->" << name << " != NULL)" << std::endl;
+	logic << "\t{" << std::endl;
 	if(this->Of->needs_disconnecting())
 	{
-		print_to_file(logic, "\t\tfor(size_t i = 0; i < o->%s_size; i++)\n" , this->name()->c_str());
-		print_to_file(logic, "\t\t{\n");
-		print_to_file(logic, "\t\t\t");
+		logic << "\t\tfor(size_t i = 0; i < o->" << name << "_size; i++)" << std::endl;
+		logic << "\t\t{" << std::endl;
+		logic << "\t\t\t";
 		this->Of->print_disconnect(logic);
-		print_to_file(logic, "(o->%s[i]);\n", this->name()->c_str());
-		print_to_file(logic, "\t\t}\n");
+		logic << "(o->" << name << "[i]);" << std::endl;
+		logic << "\t\t}" << std::endl;
 	}
-	print_to_file(logic, "\t\tfree(o->%s)\n", this->name()->c_str());
-	print_to_file(logic, "\t\to->%s = NULL;\n", this->name()->c_str());
-	print_to_file(logic, "\t\to->%s_size = 0;\n", this->name()->c_str());
-	print_to_file(logic, "\t}\n\n");
+	logic << "\t\tfree(o->" << name << ");" << std::endl;
+	logic << "\t\to->" << name << " = NULL;" << std::endl;
+	logic << "\t\to->" << name << "_size = 0;" << std::endl;
+	logic << "\t}" << std::endl;
+	logic << std::endl;
 	return true;
 }
 
-bool Array::genLogic(FILE *logic, Module *Mod, Type *t)
+bool Array::genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t)
 {
-	genAddFunctionDef(logic, Mod, t);
-	print_to_file(logic, "\n{\n");
+	genAddFunctionDef(logic, name, Mod, t);
+	logic << std::endl;
+	logic << "{" << std::endl;
 	
 	t->lock_code_print(logic, false);
 	
-	print_to_file(logic, "\tbool res = true;\n");
-	print_to_file(logic, "\to->%s_size++;\n", this->name()->c_str());
-	print_to_file(logic, "\tvoid *n = realloc(o->%s, sizeof(", this->name()->c_str());
+	logic << "\tbool res = true;" << std::endl;
+	logic << "\to->" << name << "_size++;" << std::endl;
+	logic << "\tvoid *n = realloc(o->" << name << ", sizeof(";
 	this->Of->genType(logic);
-	print_to_file(logic, ") * o->%s_size);\n", this->name()->c_str());
-	print_to_file(logic, "\tif(n != NULL)\n\t{\n");
-	print_to_file(logic, "\t\to->%s[o->%s_size-1] = v;\n", this->name()->c_str(), this->name()->c_str());
+	logic << ") * o->" << name << "_size);" << std::endl;
+	logic << "\tif(n != NULL)" << std::endl;
+	logic << "\t{" << std::endl;
+	logic << "\t\to->" << name << "[o->" << name << "_size-1] = v;" << std::endl;
 	if(this->Of->needs_connecting())
 	{
+		logic << "\t\t";
 		this->Of->print_connect(logic);
-		print_to_file(logic, "(o->%s[o->%s_size-1]);\n", this->name()->c_str(), this->name()->c_str());
+		logic << "(o->" << name << "[o->" << name << "_size-1]);" << std::endl;
 	}
-	print_to_file(logic, "\t} else {\n\t\tres = false;\n\t}\n");
+	logic << "\t} else {" << std::endl;
+	logic << "\t\tres = false;" << std::endl;
+	logic << "\t}" << std::endl;
 
 	t->unlock_code_print(logic);
 
-	print_to_file(logic, "\treturn res;\n");
-	print_to_file(logic, "}\n\n");
+	logic << "\treturn res;" << std::endl;
+	logic << "}" << std::endl;
+	logic << std::endl;
+
+	genGetFunctionDef(logic, name, Mod, t);
+	logic << std::endl;
+	logic << "{" << std::endl;
+	
+	t->lock_code_print(logic, false);
+	
+	logic << "\t";
+	this->Of->genType(logic);
+	logic << " res = " << this->Of->initValue() << ";" << std::endl;
+	logic << "\tif(idx < o->" << name << "_size)" << std::endl;
+	logic << "\t{" << std::endl;
+	logic << "\t\tres = o->" << name << "[idx];" << std::endl;
+	if(this->Of->needs_connecting())
+	{
+		logic << "\t\t";
+		this->Of->print_connect(logic);
+		logic << "(res);" << std::endl;
+	}
+	logic << "\t} else {" << std::endl;
+	logic << "\t\tres = " << this->Of->initValue() << ";" << std::endl;
+	logic << "\t}" << std::endl;
+
+	t->unlock_code_print(logic);
+
+	logic << "\treturn res;" << std::endl;
+	logic << "}" << std::endl;
+	logic << std::endl;
+
 	return true;
 }

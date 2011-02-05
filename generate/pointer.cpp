@@ -2,51 +2,96 @@
 
 using namespace generator;
 
-bool Pointer::genType(FILE *header)
+bool Pointer::genType(std::ostream& header)
 {
 	this->To->genType(header);
-	print_to_file(header, "*");
+	header << "*";
 	return true;
 }
 
-bool Pointer::genSetFunctionDef(FILE *header, Module *Mod, Type *t)
+bool Pointer::genStruct(std::ostream& header, std::string name)
 {
-	print_to_file(header, "bool %s%s_%s_set(%s o, ", Mod->funcPrefix()->c_str(), t->name()->c_str(), this->name()->c_str(), t->name()->c_str());
 	this->To->genType(header);
-	print_to_file(header, " *v)");
+	header << "* " << name;
 	return true;
 }
 
-bool Pointer::genFunctionDefs(FILE *header, Module *Mod, Type *t)
+bool Pointer::genSetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t)
 {
-	this->genSetFunctionDef(header, Mod, t);
-	print_to_file(header, ";\n");
+	header << "bool " << Mod->funcPrefix() << t->name() << "_" << name << "_set(";
+	t->genStruct(header, "o");
+	header << ", ";
+	this->genStruct(header, "v");
+	header << ")";
 	return true;
 }
 
-bool Pointer::genDestruct(FILE *header)
+bool Pointer::genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t)
 {
-	print_to_file(header, "\tif(o->%s != NULL)\n\t{\n\t\t%s(o->%s);\n\t}\n\n", this->name()->c_str(), this->Destroy->c_str(), this->name()->c_str());
+	this->genType(header);
+	header << " " << Mod->funcPrefix() << t->name() << "_" << name << "_get(";
+	t->genStruct(header, "o");
+	header << ")";
 	return true;
 }
 
-bool Pointer::genLogic(FILE *logic, Module *Mod, Type *t)
+bool Pointer::genFunctionDefs(std::ostream& header, std::string *name, Module *Mod, Type *t)
 {
-	genSetFunctionDef(logic, Mod, t);
-	print_to_file(logic, "\n{\n");
-	
+	this->genSetFunctionDef(header, name, Mod, t);
+	header << ";" << std::endl;
+	this->genGetFunctionDef(header, name, Mod, t);
+	header << ";" << std::endl;
+	return true;
+}
+
+bool Pointer::genDestruct(std::ostream& header, std::string *name)
+{
+	header << "\tif(o->" << name << " != NULL)" << std::endl;
+	header << "\t{" << std::endl;
+	header << "\t\t" << this->Destroy << "(o->" << name << ");" << std::endl;
+	header << "\t}" << std::endl;
+	header << std::endl;
+	return true;
+}
+
+bool Pointer::genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t)
+{
+	genSetFunctionDef(logic, name, Mod, t);
+	logic << std::endl;
+	logic << "{" << std::endl;
+
 	t->lock_code_print(logic, false);
 	
-	print_to_file(logic, "\tif(o->%s != NULL)\n\t{\n", this->name()->c_str());
-	print_to_file(logic, "\t\t%s(o->%s);\n", this->Destroy->c_str(), this->name()->c_str());
-	print_to_file(logic, "\t\to->%s = NULL;\n", this->name()->c_str());
-	print_to_file(logic, "\t}\n\n");
+	logic << "\tif(o->" << name << " != NULL)" << std::endl;
+	logic << "\t{" << std::endl;
+	logic << "\t\t" << this->Destroy << "(o->" << name << ");" << std::endl;
+	logic << "\t\to->" << name << " = NULL;" << std::endl;
+	logic << "\t}" << std::endl;
+	logic << std::endl;
 
-	print_to_file(logic, "\to->%s = v;\n\n", this->name()->c_str());
+	logic << "\to->" << name << " = v;" << std::endl;
+	logic << std::endl;
 
 	t->unlock_code_print(logic);
 
-	print_to_file(logic, "\treturn true;\n");
-	print_to_file(logic, "}\n\n");
+	logic << "\treturn true;" << std::endl;
+	logic << "}" << std::endl;
+	logic << std::endl;
+
+	genGetFunctionDef(logic, name, Mod, t);
+	logic << std::endl;
+	logic << "{" << std::endl;
+
+	t->lock_code_print(logic, false);
+	
+	logic << "\t";
+	this->genType(logic);
+	logic << " res = o->" << name << ";" << std::endl;
+
+	t->unlock_code_print(logic);
+
+	logic << "\treturn res;" << std::endl;
+	logic << "}" << std::endl;
+	logic << std::endl;
 	return true;
 }

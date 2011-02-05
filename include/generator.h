@@ -3,6 +3,9 @@
 #include <map>
 #include <vector>
 #include <sstream>
+#include <list>
+#include <ostream>
+#include <fstream>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -62,31 +65,72 @@ extern "C" {
 	int li_type_memberAdd(lua_State *L);
 	int li_type_functionCreate(lua_State *L);
 	int li_function_paramAdd(lua_State *L);
+	int li_module_type_create(lua_State *L);
+	int li_module_include_add(lua_State *L);
 };
 
 
 namespace generator {
 	class Element;
+	class Type;
 	class Object;
 	class Function;
-	class Member;
-	class RType;
+	class Element;
+	class SystemType;
 	class Pointer;
-	class ObjectMember;
+	class ObjectElement;
 	class Array;
 	class Module;
 	class World;
 
 	class Element {
+		private:
 		public:
 			explicit Element() {};
-			virtual bool genStruct(FILE *header);
-			virtual bool genFunctionDefs(FILE *header);
-			virtual bool genLogic(FILE *logic);
-			virtual bool genTemplate(FILE *templ);
-			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L, Element)
-			}
+			virtual bool genStruct(std::ostream& header, std::string name) = 0;
+			virtual bool genType(std::ostream& header) = 0;
+			virtual bool genDestruct(std::ostream& logic, std::string *name) = 0;
+			virtual bool genFunctionDefs(std::ostream& header, std::string *name, Module *Mod, Type *t) = 0;
+			virtual bool genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t) = 0;
+			virtual std::string initValue() = 0;
+			virtual bool genTemplate(std::ostream& templ) { return true; };
+			virtual bool needs_connecting() { return false; };
+			virtual bool needs_disconnecting() { return false; };
+			virtual bool print_connect(std::ostream& logic) { return true; };
+			virtual bool print_disconnect(std::ostream& logic) { return true; };
+			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Element) }
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
+	};
+	
+	template <class T>
+	class Member {
+		private:
+			T* type;
+			bool init;
+			bool input;
+		public:
+			Member<T>(T* type, bool init = false, bool input = false) : type(type), init(init), input(input) {}
+			T* get() { return this->type; }
+			std::string Name() { return this->name; };
+			bool isInit() { return this->init; };
+			bool isInput() { return (this->init && this->input); }
+			// functions for generator output
+			virtual bool genStruct(std::ostream& of, std::string name)
+			{
+				return type->genStruct(of, name);
+			}
+			virtual bool genDestruct(std::ostream& of, std::string *name)
+			{
+				return type->genDestruct(of, name);
+			}
+			virtual bool genFunctionDefs(std::ostream& of, std::string *name, Module *Mod, Type *t)
+			{
+				return type->genFunctionDefs(of, name, Mod, t);
+			}
+			virtual bool genLogic(std::ostream& of, std::string *name, Module *Mod, Type *t)
+			{
+				return type->genLogic(of, name, Mod, t);
+			}
 	};
 
 	class Type : public Element {
@@ -96,37 +140,45 @@ namespace generator {
 			std::string *Name;
 			bool nolock;
 			bool noref;
-			std::map<std::string *, Member *> members;
-			std::map<std::string *, Member *>::iterator memberIterBegin();
-			std::map<std::string *, Member *>::iterator memberIterEnd();
+			std::map<std::string *, Member<Element> *> members;
+			std::map<std::string *, Member<Element> *>::iterator memberIterBegin();
+			std::map<std::string *, Member<Element> *>::iterator memberIterEnd();
 			std::map<std::string *, Function *> functions;
 			std::map<std::string *, Function *>::iterator functionIterBegin();
 			std::map<std::string *, Function *>::iterator functionIterEnd();
-			bool create_def_print(FILE *f);		
-			bool destroy_def_print(FILE *f);
-			bool ref_def_print(FILE *f);
-			bool unref_def_print(FILE *f);
-			bool create_func_print(FILE *f);		
-			bool destroy_func_print(FILE *f);
-			bool ref_func_print(FILE *f);
-			bool unref_func_print(FILE *f);
-			bool destroy_lock_code_print(FILE *f);
+			bool create_def_print(std::ostream& f);
+			bool func_def_print(std::ostream& f, std::string fname);
+			bool create_func_print(std::ostream& f);		
+			bool destroy_func_print(std::ostream& f);
+			bool ref_func_print(std::ostream& f);
+			bool unref_func_print(std::ostream& f);
+			bool destroy_lock_code_print(std::ostream& f);
 		public:
 			explicit Type(Module *mod, std::string *objName) : Name(objName), Mod(mod), nolock(false), noref(false), Element() {};
-			bool memberAdd(Member *);
+			bool memberAdd(Member<Element> *m, std::string *name);
 			Element *memberFind(std::string *);
 			bool functionAdd(Function *);
 			Function *functionFind(std::string *);
 			std::string *name() { return this->Name; };
-			virtual bool genStruct(FILE *header);
-			virtual bool genFunctionDefs(FILE *header, Module *Mod);
-			virtual bool genLogic(FILE *logic);
-			virtual bool genTemplate(FILE *templ);
-			bool lock_code_print(FILE *f, bool null);
-			bool unlock_code_print(FILE *f);
-			bool print_disconnect_function(FILE *f);
-			bool needs_referencing() { return (!nolock && !noref); };
-			bool print_connect_function(FILE *f);
+			virtual bool genType(std::ostream& header);
+			virtual bool genStruct(std::ostream& header, std::string name);
+			virtual bool genSetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
+			virtual bool genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
+			virtual bool genFunctionDefs(std::ostream& header, std::string *, Module *Mod, Type *t);
+			virtual bool genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t);
+			virtual bool genDestruct(std::ostream& logic, std::string *name);
+			virtual std::string initValue() { return "NULL"; };
+			bool genStruct(std::ostream& header);
+			bool genFunctionDefs(std::ostream& header, Module *Mod);
+			bool genLogic(std::ostream& logic);
+			bool genTemplate(std::ostream& templ);
+			bool lock_code_print(std::ostream& f, bool null);
+			bool unlock_code_print(std::ostream& f);
+			virtual bool print_disconnect(std::ostream& f);
+			virtual bool needs_disconnecting() { return true; };
+			virtual bool needs_connecting() { return (!nolock && !noref); };
+			virtual bool needs_referencing() { return (!nolock && !noref); };
+			virtual bool print_connect(std::ostream& f);
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Type)
 						LUA_ADD_TABLE_FUNC(L, "memberAdd", li_type_memberAdd);
 						LUA_ADD_TABLE_FUNC(L, "functionCreate", li_type_functionCreate);
@@ -134,117 +186,79 @@ namespace generator {
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 	
-	class Member : public Element {
+	class Function {
 		private:
-			typedef Element super;
-			bool init;
-			bool input;
+			std::map<std::string *, Member<Element> *> parameters;
+			std::map<std::string *, Member<Element> *>::iterator paramsIterBegin();
+			std::map<std::string *, Member<Element> *>::iterator paramsIterEnd();
 			std::string *Name;
-			std::string *InitValue;
+			Element *ReturnType;
+			bool genFunctionDef(std::ostream& header, Module *Mod, Type *t, bool tpl, bool type);
 		public:
-			explicit Member(bool init, bool input, std::string *name, std::string *initValue) : init(init), input(input), Name(name), InitValue(initValue), Element() {};
+			explicit Function(std::string *Name, Element *rt) : Name(Name), ReturnType(rt) {};
+			bool paramAdd(std::string *, Member<Element> *mem);
 			std::string *name() { return this->Name; };
-			std::string *initValue() { return this->InitValue; };
-			bool isInit() { return this->init; };
-			bool isInput() { return this->input; };
-			virtual bool genStruct(FILE *header);
-			virtual bool genType(FILE *header);
-			virtual bool genFunctionDefs(FILE *header, Module *Mod, Type *t);
-			virtual bool genDestruct(FILE *logic);
-			virtual bool genLogic(FILE *logic, Module *Mod, Type *t);
-			virtual bool genTemplate(FILE *templ);
-			virtual bool needs_connecting() { return false; };
-			virtual bool needs_disconnecting() { return false; };
-			virtual bool print_connect(FILE *logic);
-			virtual bool print_disconnect(FILE *logic);
-			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Member)
-						super::lua_table_r(L); }
-			virtual void lua_table(lua_State *L) { lua_table_r(L); };
-	};
-	
-	class Function : public Element {
-		private:
-			typedef Element super;
-			std::map<std::string *, Member *> parameters;
-			std::map<std::string *, Member *>::iterator paramsIterBegin();
-			std::map<std::string *, Member *>::iterator paramsIterEnd();
-			std::string *Name;
-			Member *ReturnType;
-			bool genFunctionDef(FILE *header, Module *Mod, Type *t, bool tpl, bool type);
-		public:
-			explicit Function(std::string *Name, Member *rt) : Name(Name), ReturnType(rt), Element() {};
-			bool paramAdd(Member *mem);
-			std::string *name() { return this->Name; };
-			virtual bool genFunctionDefs(FILE *header, Module *Mod, Type *t);
-			virtual bool genLogic(FILE *logic, Module *Mod, Type *t);
-			virtual bool genTemplate(FILE *templ, Module *Mod, Type *t);
+			bool genFunctionDefs(std::ostream& header, Module *Mod, Type *t);
+			bool genLogic(std::ostream& logic, Module *Mod, Type *t);
+			bool genTemplate(std::ostream& templ, Module *Mod, Type *t);
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Function)
-						LUA_ADD_TABLE_FUNC(L, "paramAdd", li_function_paramAdd);
-						super::lua_table_r(L); }
+						LUA_ADD_TABLE_FUNC(L, "paramAdd", li_function_paramAdd); }
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 	
-	class RType : public Member {
+	class SystemType : public Element {
 		private:
-			typedef Member super;
+			typedef Element super;
 			std::string *TypeName;
 		public:
-			explicit RType(std::string *TypeName, bool init, bool input, std::string *Name, std::string *InitValue) : TypeName(TypeName), Member(init, input, Name, InitValue) {};
-			virtual bool genType(FILE *header);
-			virtual bool genSetFunctionDef(FILE *header, Module *Mod, Type *t);
-			virtual bool genFunctionDefs(FILE *header, Module *Mod, Type *t);
-			virtual bool genLogic(FILE *logic, Module *Mod, Type *t);
-			virtual bool genDestruct(FILE *logic);
-			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,RType)
+			explicit SystemType(std::string *TypeName) : TypeName(TypeName), Element() {};
+			virtual bool genType(std::ostream& header);
+			virtual bool genStruct(std::ostream& header, std::string name);
+			virtual bool genSetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
+			virtual bool genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
+			virtual bool genFunctionDefs(std::ostream& header, std::string *, Module *Mod, Type *t);
+			virtual bool genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t);
+			virtual bool genDestruct(std::ostream& logic, std::string *name);
+			virtual std::string initValue() { return "0"; };
+			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,SystemType)
 						super::lua_table_r(L); }
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 	
-	class Pointer : public Member {
+	class Pointer : public Element {
 		private:
-			typedef Member super;
-			Member *To;
+			typedef Element super;
+			Element *To;
 			std::string *Destroy;
 		public:
-			explicit Pointer(Member *to, std::string *Name, std::string *destroy, bool init, bool input, std::string *InitValue) : To(to), Destroy(destroy), Member(init, input, Name, InitValue) { if(this->Destroy == NULL) { std::cerr << "Error Destroy is NULL" << std::endl; } };
-			virtual bool genType(FILE *header);
-			virtual bool genSetFunctionDef(FILE *header, Module *Mod, Type *t);
-			virtual bool genFunctionDefs(FILE *header, Module *Mod, Type *t);
-			virtual bool genDestruct(FILE *logic);
-			virtual bool genLogic(FILE *logic, Module *Mod, Type *t);
+			explicit Pointer(Element *to, std::string *destroy) : To(to), Destroy(destroy), Element() { if(this->Destroy == NULL) { std::cerr << "Error Destroy is NULL" << std::endl; } };
+			virtual bool genType(std::ostream& header);
+			virtual bool genStruct(std::ostream& header, std::string name);
+			virtual bool genSetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
+			virtual bool genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
+			virtual bool genFunctionDefs(std::ostream& header, std::string *, Module *Mod, Type *t);
+			virtual bool genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t);
+			virtual bool genDestruct(std::ostream& logic, std::string *name);
+			virtual std::string initValue() { return "NULL"; };
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Pointer)
 						super::lua_table_r(L); }
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 	
-	class ObjectMember : public Member {
+	class Array : public Element {
 		private:
-			typedef Member super;
-			Type *Object;
+			typedef Element super;
+			Element *Of;
 		public:
-			explicit ObjectMember(Type *object, bool init, bool input, std::string *Name, std::string *InitValue) : Object(object), Member(init, input, Name, InitValue) {};
-			virtual bool genType(FILE *header);
-			virtual bool genSetFunctionDef(FILE *header, Module *Mod, Type *t);
-			virtual bool genFunctionDefs(FILE *header, Module *Mod, Type *t);
-			virtual bool genDestruct(FILE *logic);		
-			virtual bool genLogic(FILE *logic, Module *Mod, Type *t);
-			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,ObjectMember)
-						super::lua_table_r(L); }
-			virtual void lua_table(lua_State *L) { lua_table_r(L); };
-	};
-	
-	class Array : public Member {
-		private:
-			typedef Member super;
-			Member *Of;
-		public:
-			explicit Array(Member *of, std::string *Name) : Of(of), Member(false, false, Name, NULL) {};
-			virtual bool genStruct(FILE *header);
-			virtual bool genType(FILE *header);
-			virtual bool genAddFunctionDef(FILE *header, Module *Mod, Type *t);
-			virtual bool genFunctionDefs(FILE *header, Module *Mod, Type *t);
-			virtual bool genDestruct(FILE *logic);		
-			virtual bool genLogic(FILE *logic, Module *Mod, Type *t);
+			explicit Array(Element *of) : Of(of), Element() {};
+			virtual bool genType(std::ostream& header);
+			virtual bool genStruct(std::ostream& header, std::string name);
+			virtual bool genAddFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
+			virtual bool genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
+			virtual bool genFunctionDefs(std::ostream& header, std::string *, Module *Mod, Type *t);
+			virtual bool genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t);
+			virtual bool genDestruct(std::ostream& logic, std::string *name);
+			virtual std::string initValue() { return "NULL"; };
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Array)
 						super::lua_table_r(L); }
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
@@ -256,9 +270,12 @@ namespace generator {
 			std::string *Path;
 			std::string *FilePrefix;
 			std::string *FuncPrefix;
+			std::list<std::string> headers;
+			std::list<Module *> depends;
 			std::map<std::string *, Type *> *Objects;
 			std::map<std::string *, Type *>::iterator objectsIterBegin();
 			std::map<std::string *, Type *>::iterator objectsIterEnd();
+			std::list<std::string *> includes;
 		public:
 			explicit Module(std::string *name, std::string *Path, std::string *FilePrefix, std::string *FuncPrefix) :
 			Name(name), Path(Path), FilePrefix(FilePrefix), FuncPrefix(FuncPrefix)
@@ -269,7 +286,10 @@ namespace generator {
 			std::string *funcPrefix() { return this->FuncPrefix; };
 			std::string *filePrefix() { return this->FilePrefix; };
 			std::string *name() { return this->Name; };
+			bool includeAdd(std::string *inc) { this->includes.push_back(inc); return true; };
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Module)
+							LUA_ADD_TABLE_FUNC(L,"newType",li_module_type_create)
+							LUA_ADD_TABLE_FUNC(L,"addInclude",li_module_include_add)
 						}
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
@@ -291,3 +311,5 @@ namespace generator {
 	extern World *WORLD;
 	void luaopen_process(lua_State *state);
 }
+
+std::ostream& operator<<(std::ostream& os, std::string *str);
