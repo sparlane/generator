@@ -14,7 +14,7 @@ t3:memberAdd(newArray(newSystemType('int')), 'a')
 f = t3:functionCreate('scott',newSystemType('bool'))
 f:paramAdd(t,'t')
 
-m:addInclude('tester.h')
+-- m:addInclude('tester.h')
 
 t4 = m:newType('arrayTest2')
 t4:memberAdd(newArray(t3), 'testA')

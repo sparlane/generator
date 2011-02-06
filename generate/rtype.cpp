@@ -66,9 +66,9 @@ bool SystemType::genLogic(std::ostream& logic, std::string *name, Module *Mod, T
 	t->lock_code_print(logic, false);
 	
 	logic << "\t";
-	t->genStruct(logic, "res");
+	this->genStruct(logic, "res");
 	
-	logic << "\tres = o->" << name << std::endl;
+	logic << " = o->" << name << ";" << std::endl;
 	logic << std::endl;
 
 	t->unlock_code_print(logic);

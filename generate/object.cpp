@@ -8,7 +8,8 @@ bool Type::create_def_print(std::ostream& f)
 	std::map<std::string *, Member<Element > *>::iterator mcurr = memberIterBegin();
 	std::map<std::string *, Member<Element > *>::iterator mend = memberIterEnd();
 
-	f << this->Name << " " << Mod->funcPrefix() << this->Name << "_create(";
+	this->genType(f);
+	f << " " << Mod->funcPrefix() << this->Name << "_create(";
 	int count = 0;
 	for( ; mcurr != mend; ++mcurr)
 	{
@@ -28,7 +29,9 @@ bool Type::create_def_print(std::ostream& f)
 
 bool Type::func_def_print(std::ostream& f, std::string fname)
 {
-	f << "bool " << Mod->funcPrefix() << this->Name << "_" << fname << "(" << this->Name << " o)";
+	f << "bool " << Mod->funcPrefix() << this->Name << "_" << fname << "(";
+	this->genStruct(f, "o");
+	f << ")";
 	return true;
 }
 
@@ -82,7 +85,11 @@ bool Type::create_func_print(std::ostream& f)
 
 	f << " /* Create a " << this->Name << " */" << std::endl;
 	f << "{" << std::endl;
-	f << "\t" << this->Name << " o = calloc(1, sizeof(struct " << this->Name << "_s));" << std::endl;
+	f << "\t";
+	this->genStruct(f, "o");
+	f << " = calloc(1, sizeof(struct ";
+	this->genType(f);
+	f << "_s));" << std::endl;
 	f << "\tif(o == NULL) goto ERROR_EARLY;\n" << std::endl;
 	
 	if(!nolock)
@@ -127,8 +134,10 @@ bool Type::destroy_func_print(std::ostream& f)
 
 	f << " /* Destroy a " << this->Name << " */" << std::endl;
 	f << "{" << std::endl;
-	f << "\tif(o == NULL) return false;" << std::endl
-		<< std::endl;
+	f << "\tif(o == NULL) return false;" << std::endl;
+	f << std::endl;
+	
+	f << "bool res = true;" << std::endl;
 
 	if(noref)
 	{
@@ -145,7 +154,7 @@ bool Type::destroy_func_print(std::ostream& f)
 	if(!destroy_lock_code_print(f)) return false;
 	
 	f << "\tfree(o);" << std::endl;
-	f << "\treturn true;" << std::endl;
+	f << "\treturn res;" << std::endl;
 	f << "}" << std::endl;
 	f << std::endl;
 	return true;
@@ -319,6 +328,14 @@ bool Type::genTemplate(std::ostream& templ)
 	return true;
 }
 
+bool Type::haveFunctions()
+{
+	if(functionIterBegin() != functionIterEnd())
+		return true;
+	return false;
+}
+
+
 bool Type::memberAdd(Member<Element> *m, std::string *name)
 {
 	this->members.insert(std::make_pair(name, m));
@@ -333,7 +350,7 @@ bool Type::functionAdd(Function *f)
 
 bool Type::genType(std::ostream& header)
 {
-	header << this->Name;
+	header << this->Mod->funcPrefix() << this->Name;
 	return true;
 }
 
@@ -379,36 +396,41 @@ bool Type::genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t
 	
 	t->lock_code_print(logic, false);
 	
+	logic << "\tbool res = true;" << std::endl;
 	logic << "\tif(o->" << name << " != NULL)" << std::endl;
 	logic << "\t{" << std::endl;
-	logic << "\t\t";
+	logic << "\t\tif(!";
 	this->print_disconnect(logic);
-	logic << "(o->" << name << ");" << std::endl;
-	logic << "\t\to->" << name << " = NULL;" << std::endl;
+	logic << "(o->" << name << "))" << std::endl;
+	logic << "\t\t\tres = false;" << std::endl;
+	logic << "\t\tif(res)" << std::endl;
+	logic << "\t\t\to->" << name << " = NULL;" << std::endl;
 	logic << "\t}" << std::endl;
 	logic << std::endl;
 
-	logic << "\to->" << name << " = v;" << std::endl;
+	logic << "\tif(res)";
+	logic << "\t\to->" << name << " = v;" << std::endl;
 	logic << std::endl;
 
 	if(this->needs_referencing())
 	{
-		logic << "\tif(o->" << name << " != NULL)" << std::endl;
+		logic << "\tif(res && o->" << name << " != NULL)" << std::endl;
 		logic << "\t{" << std::endl;
-		logic << "\t\t";
+		logic << "\t\tif(!";
 		this->print_connect(logic);
-		logic << "(o->" << name << ");" << std::endl;
+		logic << "(o->" << name << "))" << std::endl;
+		logic << "\t\t\tres = false;" << std::endl;
 		logic << "\t}" << std::endl;
 	}
 	
 	t->unlock_code_print(logic);
 
-	logic << "\treturn true;" << std::endl;
+	logic << "\treturn res;" << std::endl;
 	
 	logic << "}" << std::endl;
 	logic << std::endl;
 
-	this->genSetFunctionDef(logic, name, Mod, t);
+	this->genGetFunctionDef(logic, name, Mod, t);
 	logic << std::endl;
 	logic << "{" << std::endl;
 	
@@ -422,9 +444,10 @@ bool Type::genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t
 	{
 		logic << "\tif(res != NULL)" << std::endl;
 		logic << "\t{" << std::endl;
-		logic << "\t\t";
+		logic << "\t\tif(!";
 		this->print_connect(logic);
-		logic << "(res);" << std::endl;
+		logic << "(res))" << std::endl;
+		logic << "\t\t\tres = NULL;" << std::endl;
 		logic << "\t}" << std::endl;
 		logic << std::endl;
 	}

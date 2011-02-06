@@ -136,6 +136,8 @@ bool Module::generate(std::string *name)
 		free(path);
 		path = NULL;
 		
+		logic << "#include <" << this->FilePrefix << name << ".h>" << std::endl;
+		
 		if(!curr->second->genLogic(logic))
 			return false;
 	
@@ -161,7 +163,7 @@ bool Module::generate(std::string *name)
 	
 	// lastly generate the luabuild script
 	{
-		res = asprintf(&path, "output/lb/%s/%s.lb", this->Path->c_str(), name->c_str());
+		res = asprintf(&path, "output/lb/%s/%s.lua", this->Path->c_str(), name->c_str());
 		
 		if(res <= 0)
 			gen_error(strerror(errno));
@@ -171,7 +173,7 @@ bool Module::generate(std::string *name)
 		lbout << "function " << this->Path << "_" << name << "_dep(files,cflags,deps,done)" << std::endl;
 
 		lbout << "\tif done." << this->Path << "_" << name << " == nil then" << std::endl;
-		lbout << "\t\tdone[" << this->Path << "_" << name << "] = true" << std::endl;
+		lbout << "\t\tdone['" << this->Path << "_" << name << "'] = true" << std::endl;
 		lbout << "\t\t" << std::endl;
 		// for each other module we use, depend on it
 		// for each file we produce, add it
@@ -181,6 +183,16 @@ bool Module::generate(std::string *name)
 				<< "/" << name << "/" << this->FilePrefix << name 
 				<< "_" << curr->first << ".c'))" << std::endl;
 		}
+		// add the logic files (if needed)
+		for(curr = objectsIterBegin() ; curr != end ; ++curr)
+		{
+			if(curr->second->haveFunctions())
+			{
+				lbout << "\t\ttable.insert(deps, file('" << this->Path 
+					<< "/" << name << "/" << this->FilePrefix << name 
+					<< "_" << curr->first << "_logic.c'))" << std::endl;
+			}
+		}		
 		// add our header to the dependencies list
 		lbout << "\t\ttable.insert(deps, file('" << this->Path << "/"
 			<< name << "/include/" << this->FilePrefix << name << ".h'))"

@@ -35,11 +35,31 @@ bool Array::genGetFunctionDef(std::ostream& header, std::string *name, Module *M
 	return true;
 }
 
+bool Array::genDelFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t)
+{
+	header << "bool " << Mod->funcPrefix() << t->name() << "_" << name << "_del(";
+	t->genStruct(header, "o");
+	header << ", size_t idx)";
+	return true;
+}
+
+bool Array::genSizeFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t)
+{
+	header << "size_t " << Mod->funcPrefix() << t->name() << "_" << name << "_size(";
+	t->genStruct(header, "o");
+	header << ")";
+	return true;
+}
+
 bool Array::genFunctionDefs(std::ostream& header, std::string *name, Module *Mod, Type *t)
 {
 	this->genAddFunctionDef(header, name, Mod, t);
 	header << ";" << std::endl;
 	this->genGetFunctionDef(header, name, Mod, t);
+	header << ";" << std::endl;
+	this->genDelFunctionDef(header, name, Mod, t);
+	header << ";" << std::endl;
+	this->genSizeFunctionDef(header, name, Mod, t);
 	header << ";" << std::endl;
 	return true;
 }
@@ -52,9 +72,10 @@ bool Array::genDestruct(std::ostream& logic, std::string *name)
 	{
 		logic << "\t\tfor(size_t i = 0; i < o->" << name << "_size; i++)" << std::endl;
 		logic << "\t\t{" << std::endl;
-		logic << "\t\t\t";
+		logic << "\t\t\tif(!";
 		this->Of->print_disconnect(logic);
-		logic << "(o->" << name << "[i]);" << std::endl;
+		logic << "(o->" << name << "[i]))" << std::endl;
+		logic << "\t\t\t\tres = false;" << std::endl;
 		logic << "\t\t}" << std::endl;
 	}
 	logic << "\t\tfree(o->" << name << ");" << std::endl;
@@ -83,9 +104,18 @@ bool Array::genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *
 	logic << "\t\to->" << name << "[o->" << name << "_size-1] = v;" << std::endl;
 	if(this->Of->needs_connecting())
 	{
-		logic << "\t\t";
+		logic << "\t\tif(!";
 		this->Of->print_connect(logic);
-		logic << "(o->" << name << "[o->" << name << "_size-1]);" << std::endl;
+		logic << "(o->" << name << "[o->" << name << "_size-1]))" << std::endl;
+		logic << "\t\t{" << std::endl;
+		logic << "\t\t\tres = false;" << std::endl;
+		logic << "\t\t\to->" << name << "_size--;" << std::endl;
+		logic << "\t\t\tif(o->" << name << "_size == 0)" << std::endl;
+		logic << "\t\t\t{" << std::endl;
+		logic << "\t\t\t\tfree(o->" << name << ");" << std::endl;
+		logic << "\t\t\t\to->" << name << " = NULL;" << std::endl;
+		logic << "\t\t\t}" << std::endl;
+		logic << "\t\t}" << std::endl;
 	}
 	logic << "\t} else {" << std::endl;
 	logic << "\t\tres = false;" << std::endl;
@@ -111,14 +141,64 @@ bool Array::genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *
 	logic << "\t\tres = o->" << name << "[idx];" << std::endl;
 	if(this->Of->needs_connecting())
 	{
-		logic << "\t\t";
+		logic << "\t\tif(!";
 		this->Of->print_connect(logic);
-		logic << "(res);" << std::endl;
+		logic << "(res))" << std::endl;
+		logic << "\t\t\tres = " << this->Of->initValue() << ";" << std::endl;
 	}
 	logic << "\t} else {" << std::endl;
 	logic << "\t\tres = " << this->Of->initValue() << ";" << std::endl;
 	logic << "\t}" << std::endl;
 
+	t->unlock_code_print(logic);
+
+	logic << "\treturn res;" << std::endl;
+	logic << "}" << std::endl;
+	logic << std::endl;
+
+	genDelFunctionDef(logic, name, Mod, t);
+	logic << std::endl;
+	logic << "{" << std::endl;
+	
+	t->lock_code_print(logic, false);
+	
+	logic << "\tbool res = true;" << std::endl;
+	logic << "\tif(idx >= o->" << name << "_size)" << std::endl;
+	logic << "\t\tres = false;" << std::endl;
+	if(this->Of->needs_disconnecting())
+	{
+		logic << "\tif(res)" << std::endl;
+		logic << "\t{" << std::endl;
+		logic << "\t\tif(!";
+		this->Of->print_disconnect(logic);
+		logic << "(o->" << name << "[idx]))" << std::endl;
+		logic << "\t\t\tres = false;" << std::endl;
+		logic << "\t}" << std::endl;
+	}
+	logic << "\tif(res)" << std::endl;
+	logic << "\t{" << std::endl;
+	logic << "\t\to->" << name << "[idx] = o->" << name << "[o->" << name << "_size-1];" << std::endl;
+	logic << "\t\to->" << name << "_size--;" << std::endl;
+	logic << "\t\tif(o->" << name << "_size == 0)" << std::endl;
+	logic << "\t\t{" << std::endl;
+	logic << "\t\t\tfree(o->" << name << ");" << std::endl;
+	logic << "\t\t\to->" << name << " = NULL;" << std::endl;
+	logic << "\t\t}" << std::endl;
+	logic << "\t}" << std::endl;
+
+	t->unlock_code_print(logic);
+
+	logic << "\treturn res;" << std::endl;
+	logic << "}" << std::endl;
+	logic << std::endl;
+
+	genSizeFunctionDef(logic, name, Mod, t);
+	logic << std::endl;
+	logic << "{" << std::endl;
+	
+	t->lock_code_print(logic, false);
+	
+	logic << "\tsize_t res = o->" << name << "_size;" << std::endl;
 	t->unlock_code_print(logic);
 
 	logic << "\treturn res;" << std::endl;

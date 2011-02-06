@@ -41,6 +41,25 @@ bool Function::genFunctionDef(std::ostream &of, Module *Mod, Type *t, bool tpl, 
 	return true;
 }
 
+bool Function::genFunctionCall(std::ostream &of, Module *Mod, Type *t, bool tpl, bool type)
+{
+	std::map<std::string *, Member<Element> *>::iterator pcurr = paramsIterBegin();
+	std::map<std::string *, Member<Element> *>::iterator pend = paramsIterEnd();
+
+	of << Mod->funcPrefix() << t->name() << "_" << this->name();
+	if(tpl)
+		of << "_s";
+	of << "(o";
+
+	for( ; pcurr != pend; ++pcurr)
+	{
+		of << ", " << pcurr->first;
+	}
+	of << ")";
+	return true;
+}
+
+
 bool Function::genFunctionDefs(std::ostream& of, Module *Mod, Type *t)
 {
 	this->genFunctionDef(of, Mod, t, false, true);
@@ -59,7 +78,7 @@ bool Function::genLogic(std::ostream& logic, Module *Mod, Type *t)
 	logic << "\t";
 	this->ReturnType->genType(logic);
 	logic << " res = ";
-	this->genFunctionDef(logic, Mod, t, true, false);
+	this->genFunctionCall(logic, Mod, t, true, false);
 	logic << ";" << std::endl;
 
 	t->unlock_code_print(logic);
@@ -78,7 +97,7 @@ bool Function::genTemplate(std::ostream& logic, Module *Mod, Type *t)
 
 	logic << "\t";
 	this->ReturnType->genType(logic);
-	logic << " res = /* SOME VALUE */;" << std::endl;
+	logic << " res = " << this->ReturnType->initValue() << ";" << std::endl;
 	
 	logic << "/* Insert Your CODE HERE */" << std::endl;
 	

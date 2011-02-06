@@ -174,6 +174,7 @@ namespace generator {
 			bool genTemplate(std::ostream& templ);
 			bool lock_code_print(std::ostream& f, bool null);
 			bool unlock_code_print(std::ostream& f);
+			bool haveFunctions();
 			virtual bool print_disconnect(std::ostream& f);
 			virtual bool needs_disconnecting() { return true; };
 			virtual bool needs_connecting() { return (!nolock && !noref); };
@@ -194,6 +195,7 @@ namespace generator {
 			std::string *Name;
 			Element *ReturnType;
 			bool genFunctionDef(std::ostream& header, Module *Mod, Type *t, bool tpl, bool type);
+			bool genFunctionCall(std::ostream& header, Module *Mod, Type *t, bool tpl, bool type);
 		public:
 			explicit Function(std::string *Name, Element *rt) : Name(Name), ReturnType(rt) {};
 			bool paramAdd(std::string *, Member<Element> *mem);
@@ -255,6 +257,8 @@ namespace generator {
 			virtual bool genStruct(std::ostream& header, std::string name);
 			virtual bool genAddFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
 			virtual bool genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
+			virtual bool genDelFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
+			virtual bool genSizeFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
 			virtual bool genFunctionDefs(std::ostream& header, std::string *, Module *Mod, Type *t);
 			virtual bool genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t);
 			virtual bool genDestruct(std::ostream& logic, std::string *name);
