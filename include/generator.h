@@ -108,12 +108,14 @@ namespace generator {
 			T* type;
 			bool init;
 			bool input;
+			std::string *initString;
 		public:
-			Member<T>(T* type, bool init = false, bool input = false) : type(type), init(init), input(input) {}
+			Member<T>(T* type, bool init = false, bool input = false, std::string *iString = NULL) : type(type), init(init), input(input), initString(iString) {}
 			T* get() { return this->type; }
 			std::string Name() { return this->name; };
 			bool isInit() { return this->init; };
 			bool isInput() { return (this->init && this->input); }
+			std::string *getInit() { return this->initString; };
 			// functions for generator output
 			virtual bool genStruct(std::ostream& of, std::string name)
 			{
@@ -154,7 +156,7 @@ namespace generator {
 			bool unref_func_print(std::ostream& f);
 			bool destroy_lock_code_print(std::ostream& f);
 		public:
-			explicit Type(Module *mod, std::string *objName) : Name(objName), Mod(mod), nolock(false), noref(false), Element() {};
+			explicit Type(Module *mod, std::string *objName, bool nl = false, bool nr = false) : Name(objName), Mod(mod), nolock(nl), noref(nr), Element() {};
 			bool memberAdd(Member<Element> *m, std::string *name);
 			Element *memberFind(std::string *);
 			bool functionAdd(Function *);
@@ -255,10 +257,10 @@ namespace generator {
 			explicit Array(Element *of) : Of(of), Element() {};
 			virtual bool genType(std::ostream& header);
 			virtual bool genStruct(std::ostream& header, std::string name);
-			virtual bool genAddFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
-			virtual bool genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
-			virtual bool genDelFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
-			virtual bool genSizeFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t);
+			virtual bool genAddFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t, bool, bool);
+			virtual bool genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t, bool, bool);
+			virtual bool genDelFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t, bool, bool);
+			virtual bool genSizeFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t, bool, bool);
 			virtual bool genFunctionDefs(std::ostream& header, std::string *, Module *Mod, Type *t);
 			virtual bool genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t);
 			virtual bool genDestruct(std::ostream& logic, std::string *name);

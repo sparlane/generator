@@ -13,7 +13,7 @@ bool Type::create_def_print(std::ostream& f)
 	int count = 0;
 	for( ; mcurr != mend; ++mcurr)
 	{
-		if(mcurr->second->isInit())
+		if(mcurr->second->isInput())
 		{
 			if(count != 0)
 			f << " ,";
@@ -107,13 +107,20 @@ bool Type::create_func_print(std::ostream& f)
 	
 	for(; mcurr != mend; ++mcurr)
 	{
+		f << "\to->" << mcurr->first << " = ";
 		if(mcurr->second->isInit())
 		{
-			f << "\to->" << mcurr->first << " = ";
-			f << ((mcurr->second->isInput()) ? *mcurr->first : mcurr->second->get()->initValue());
-			f << ";" << std::endl;
+			if(!mcurr->second->isInput())
+				f << *mcurr->second->getInit();
+			else
+				f << *mcurr->first;
+		} else {
+			f << mcurr->second->get()->initValue();
 		}
+		f << ";" << std::endl;
 	}
+	
+	f << "\treturn o;" << std::endl;
 	
 	if(!nolock)
 	{
@@ -137,7 +144,7 @@ bool Type::destroy_func_print(std::ostream& f)
 	f << "\tif(o == NULL) return false;" << std::endl;
 	f << std::endl;
 	
-	f << "bool res = true;" << std::endl;
+	f << "\tbool res = true;" << std::endl;
 
 	if(noref)
 	{

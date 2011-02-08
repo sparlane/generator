@@ -2,6 +2,7 @@
 
 #define CHECK_COUNT(F,C)		if(lua_gettop(L) != C) gen_error(#F "() requires exactly " #C " arguments");
 #define CHECK_COUNT_MIN(F,C)		if(lua_gettop(L) < C) gen_error(#F "() requires at least  " #C " arguments");
+#define CHECK_COUNT_MAX(F,C)		if(lua_gettop(L) > C) gen_error(#F "() requires at most  " #C " arguments");
 #define CHECK_ARGUMENT(F,N,T)		if(!lua_is##T(L, N)) gen_error(#F "() requires a " #T " as argument " #N );
 #define CHECK_ARGUMENT_IF_GIVEN(F,N,T)	if(lua_gettop(L) >= N && !lua_is##T(L, N)) gen_error(#F "() requires a " #T " as argument " #N " if present");
 #define GET_ARGUMENT_IF_GIVEN(N,T,D)	((lua_gettop(L) >= N && lua_is##T(L, N)) ? lua_to##T(L, N) : D)
@@ -29,9 +30,10 @@ int li_type_memberAdd(lua_State *L)
 	CHECK_ARGUMENT("memberAdd",3,string)
 	CHECK_ARGUMENT_IF_GIVEN("memberAdd",4,boolean)
 	CHECK_ARGUMENT_IF_GIVEN("memberAdd",5,boolean)
+	CHECK_ARGUMENT_IF_GIVEN("memberAdd",6,string)
 
 	lua_pushboolean(L,
-		t->memberAdd(new Member<Element>(m, GET_ARGUMENT_IF_GIVEN(4,boolean,false), GET_ARGUMENT_IF_GIVEN(5,boolean,false)), 
+		t->memberAdd(new Member<Element>(m, GET_ARGUMENT_IF_GIVEN(4,boolean,false), GET_ARGUMENT_IF_GIVEN(5,boolean,false),GET_ARGUMENT_IF_GIVEN_STR(6)), 
 			new std::string(lua_tostring(L, 3))));
 	return 1;
 }
@@ -118,7 +120,8 @@ int li_array_create(lua_State *L)
 // type *t = Module:typeCreate(name)
 int li_module_type_create(lua_State *L)
 {
-	CHECK_COUNT("typeCreate",2)
+	CHECK_COUNT_MIN("typeCreate",2)
+	CHECK_COUNT_MAX("typeCreate",4)
 	CHECK_ARGUMENT("typeCreate",2,string)
 	
 	// check we have a module, then convert it to a Module
@@ -126,7 +129,19 @@ int li_module_type_create(lua_State *L)
 
 	// now create the Type
 	
-	Type *t = new Type(m, new std::string(luaL_checkstring(L, 2)));
+	Type *t;
+	if(lua_gettop(L) == 2)
+	{
+		t = new Type(m, new std::string(luaL_checkstring(L, 2)));
+	}
+	else if(lua_gettop(L) == 3)
+	{
+		t = new Type(m, new std::string(luaL_checkstring(L, 2)), lua_toboolean(L, 3));
+	}
+	else
+	{
+		t = new Type(m, new std::string(luaL_checkstring(L, 2)), lua_toboolean(L, 3), lua_toboolean(L, 4));
+	}
 	if(t == NULL) gen_error("type could not be created");
 	
 	// now add this type to the module
