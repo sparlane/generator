@@ -154,6 +154,31 @@ int li_module_type_create(lua_State *L)
 	return 1;
 }
 
+// queue *q = Module:queueCreate(name)
+int li_module_queue_create(lua_State *L)
+{
+	CHECK_COUNT("queueCreate",3)
+	CHECK_ARGUMENT("queueCreate",3,string)
+	
+	// check we have a module, then convert it to a Module
+	CHECK_ARGUMENT_TYPE("queueCreate",1,Module,m)
+	// check we have an element
+	CHECK_ARGUMENT_TYPE("queueCreate",2,Element,e)
+	// now create the Queue
+	
+	Queue *q = new Queue(e, m, new std::string(luaL_checkstring(L, 3)));
+	if(q == NULL) gen_error("queue could not be created");
+	
+	// now add this queue to the module
+	m->objectAdd(new std::string(luaL_checkstring(L, 3)), q);
+	
+	CREATE_TABLE(L, q);
+	q->lua_table(L);
+		
+	// now we just return the table :)
+	return 1;
+}
+
 // bool = Module:addInclude(string)
 int li_module_include_add(lua_State *L)
 {

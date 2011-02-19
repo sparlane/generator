@@ -16,7 +16,7 @@ bool Array::genStruct(std::ostream& header, std::string name)
 	return true;
 }
 
-bool Array::genAddFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t, bool tpl, bool call)
+bool Array::genAddFunctionDef(std::ostream& header, std::string *name, Module *Mod, Object *t, bool tpl, bool call)
 {
 	if(!call) header << "bool ";
 	header << Mod->funcPrefix() << t->name() << "_" << name << "_add";
@@ -31,7 +31,7 @@ bool Array::genAddFunctionDef(std::ostream& header, std::string *name, Module *M
 	return true;
 }
 
-bool Array::genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t, bool tpl, bool call)
+bool Array::genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Object *t, bool tpl, bool call)
 {
 	if(!call) this->Of->genType(header);
 	header << " " << Mod->funcPrefix() << t->name() << "_" << name << "_get";
@@ -46,7 +46,7 @@ bool Array::genGetFunctionDef(std::ostream& header, std::string *name, Module *M
 	return true;
 }
 
-bool Array::genDelFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t, bool tpl, bool call)
+bool Array::genDelFunctionDef(std::ostream& header, std::string *name, Module *Mod, Object *t, bool tpl, bool call)
 {
 	if(!call) header << "bool ";
 	header << Mod->funcPrefix() << t->name() << "_" << name << "_del";
@@ -61,7 +61,7 @@ bool Array::genDelFunctionDef(std::ostream& header, std::string *name, Module *M
 	return true;
 }
 
-bool Array::genSizeFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t, bool tpl, bool call)
+bool Array::genSizeFunctionDef(std::ostream& header, std::string *name, Module *Mod, Object *t, bool tpl, bool call)
 {
 	if(!call) header << "size_t ";
 	header << Mod->funcPrefix() << t->name() << "_" << name << "_size";
@@ -73,7 +73,7 @@ bool Array::genSizeFunctionDef(std::ostream& header, std::string *name, Module *
 	return true;
 }
 
-bool Array::genFunctionDefs(std::ostream& header, std::string *name, Module *Mod, Type *t)
+bool Array::genFunctionDefs(std::ostream& header, std::string *name, Module *Mod, Object *t)
 {
 	this->genAddFunctionDef(header, name, Mod, t, false, false);
 	header << ";" << std::endl;
@@ -108,7 +108,7 @@ bool Array::genDestruct(std::ostream& logic, std::string *name)
 	return true;
 }
 
-bool Array::genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t)
+bool Array::genLogic(std::ostream& logic, std::string *name, Module *Mod, Object *t)
 {
 	logic << "static ";
 	genAddFunctionDef(logic, name, Mod, t, true, false);

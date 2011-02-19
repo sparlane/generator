@@ -16,7 +16,7 @@ bool Pointer::genStruct(std::ostream& header, std::string name)
 	return true;
 }
 
-bool Pointer::genSetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t)
+bool Pointer::genSetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Object *t)
 {
 	header << "bool " << Mod->funcPrefix() << t->name() << "_" << name << "_set(";
 	t->genStruct(header, "o");
@@ -26,7 +26,7 @@ bool Pointer::genSetFunctionDef(std::ostream& header, std::string *name, Module 
 	return true;
 }
 
-bool Pointer::genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t)
+bool Pointer::genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Object *t)
 {
 	this->genType(header);
 	header << " " << Mod->funcPrefix() << t->name() << "_" << name << "_get(";
@@ -35,7 +35,7 @@ bool Pointer::genGetFunctionDef(std::ostream& header, std::string *name, Module 
 	return true;
 }
 
-bool Pointer::genFunctionDefs(std::ostream& header, std::string *name, Module *Mod, Type *t)
+bool Pointer::genFunctionDefs(std::ostream& header, std::string *name, Module *Mod, Object *t)
 {
 	this->genSetFunctionDef(header, name, Mod, t);
 	header << ";" << std::endl;
@@ -54,7 +54,7 @@ bool Pointer::genDestruct(std::ostream& header, std::string *name)
 	return true;
 }
 
-bool Pointer::genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t)
+bool Pointer::genLogic(std::ostream& logic, std::string *name, Module *Mod, Object *t)
 {
 	genSetFunctionDef(logic, name, Mod, t);
 	logic << std::endl;

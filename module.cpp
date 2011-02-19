@@ -16,26 +16,26 @@ static char *to_upper_string(const char *str)
 	return ret;
 }
 
-std::map<std::string *, Type *>::iterator Module::objectsIterBegin()
+std::map<std::string *, Object *>::iterator Module::objectsIterBegin()
 {
 	return this->Objects->begin();
 }
 
-std::map<std::string *, Type *>::iterator Module::objectsIterEnd()
+std::map<std::string *, Object *>::iterator Module::objectsIterEnd()
 {
 	return this->Objects->end();
 }
 
-bool Module::objectAdd(std::string *oName, Type *object)
+bool Module::objectAdd(std::string *oName, Object *object)
 {
-	this->Objects->insert(std::pair<std::string *, Type *>(oName, object));
+	this->Objects->insert(std::pair<std::string *, Object *>(oName, object));
 	return true;
 }
 
 bool Module::generate(std::string *name)
 {
-	std::map<std::string *, Type *>::iterator curr = objectsIterBegin();
-	std::map<std::string *, Type *>::iterator end = objectsIterEnd();
+	std::map<std::string *, Object *>::iterator curr = objectsIterBegin();
+	std::map<std::string *, Object *>::iterator end = objectsIterEnd();
 
 	char *path = NULL;
 	int res = asprintf(&path, "output/%s", this->Path->c_str());
@@ -108,14 +108,20 @@ bool Module::generate(std::string *name)
 
 	for(curr = objectsIterBegin(); curr != end; ++curr)
 	{
-		header << "struct " << this->funcPrefix() << curr->first << "_s {" << std::endl;
-		if(!curr->second->genStruct(header)) return false;
-		header << "};" << std::endl << std::endl;
+		if(!curr->second->genStruct(header))
+		{
+			std::cerr << "Error generating structure: " << curr->first << std::endl;
+			return false;
+		}
 	}
 
 	for(curr = objectsIterBegin(); curr != end; ++curr)
 	{
-		if(!curr->second->genFunctionDefs(header, this)) return false;
+		if(!curr->second->genFunctionDefs(header, this))
+		{
+			std::cerr << "Error generating function definitions: " << curr->first << std::endl;
+			return false;
+		}
 	}
 	header << std::endl;
 
@@ -139,26 +145,31 @@ bool Module::generate(std::string *name)
 		logic << "#include <" << this->FilePrefix << name << ".h>" << std::endl;
 		
 		if(!curr->second->genLogic(logic))
+		{
+			std::cerr << "Error generating logic: " << curr->first << std::endl;
 			return false;
-	
+		}
 		logic.flush();
 	}
 	
 	// now generate each of the template files
 	for(curr = objectsIterBegin() ; curr != end ; ++curr)
 	{
-		res = asprintf(&path, "output/%s/%s/%s%s_%s_logic.c.tpl", this->Path->c_str(), name->c_str(), this->FilePrefix->c_str(), name->c_str(), curr->first->c_str());
-		if(res <= 0)
-			gen_error(strerror(errno));
+		if(curr->second->haveFunctions())
+		{
+			res = asprintf(&path, "output/%s/%s/%s%s_%s_logic.c.tpl", this->Path->c_str(), name->c_str(), this->FilePrefix->c_str(), name->c_str(), curr->first->c_str());
+			if(res <= 0)
+				gen_error(strerror(errno));
 		
-		std::ofstream tmpl(path);
+			std::ofstream tmpl(path);
 		
-		if(!curr->second->genTemplate(tmpl)) return false;
-	
-		tmpl.flush();
+			if(!curr->second->genTemplate(tmpl)) return false;
 
-		free(path);
-		path = NULL;
+			tmpl.flush();
+
+			free(path);
+			path = NULL;
+		}
 	}
 	
 	// lastly generate the luabuild script

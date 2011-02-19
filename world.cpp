@@ -35,7 +35,11 @@ bool World::generate()
 
 	for( ; curr != end ; ++curr)
 	{
-		if(!curr->second->generate(curr->first)) return false;
+		if(!curr->second->generate(curr->first))
+		{
+			std::cerr << "Error generating module: " << curr->first << std::endl;
+			return false;
+		}
 	}
 
 	return true;

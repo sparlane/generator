@@ -14,7 +14,7 @@ bool SystemType::genStruct(std::ostream& header, std::string name)
 	return true;
 }
 
-bool SystemType::genSetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t)
+bool SystemType::genSetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Object *t)
 {
 	header << "bool " << Mod->funcPrefix() << t->name() << "_" << name << "_set(";
 	t->genStruct(header, "o");
@@ -24,7 +24,7 @@ bool SystemType::genSetFunctionDef(std::ostream& header, std::string *name, Modu
 	return true;
 }
 
-bool SystemType::genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Type *t)
+bool SystemType::genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Object *t)
 {
 	this->genType(header);
 	header << " " << Mod->funcPrefix() << t->name() << "_" << name << "_get(";
@@ -33,7 +33,7 @@ bool SystemType::genGetFunctionDef(std::ostream& header, std::string *name, Modu
 	return true;
 }
 
-bool SystemType::genFunctionDefs(std::ostream& header, std::string *name, Module *Mod, Type *t)
+bool SystemType::genFunctionDefs(std::ostream& header, std::string *name, Module *Mod, Object *t)
 {
 	if(!genSetFunctionDef(header, name, Mod, t)) return false;
 	header << ";" << std::endl;
@@ -42,7 +42,7 @@ bool SystemType::genFunctionDefs(std::ostream& header, std::string *name, Module
 	return true;
 }
 
-bool SystemType::genLogic(std::ostream& logic, std::string *name, Module *Mod, Type *t)
+bool SystemType::genLogic(std::ostream& logic, std::string *name, Module *Mod, Object *t)
 {
 	genSetFunctionDef(logic, name, Mod, t);
 	logic << std::endl;

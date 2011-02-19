@@ -18,3 +18,6 @@ f:paramAdd(t,'t')
 
 t4 = m:newType('arrayTest2')
 t4:memberAdd(newArray(t3), 'testA')
+
+-- try a queue
+q1 = m:newQueue(newSystemType('int'), 'testque')
