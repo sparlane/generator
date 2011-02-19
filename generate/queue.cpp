@@ -160,7 +160,7 @@ bool Queue::genStruct(std::ostream& header)
 	
 	header << "\tstruct " << this->module()->funcPrefix() << this->name() << "_elmnt_s *first;" << std::endl;
 	header << "\tstruct " << this->module()->funcPrefix() << this->name() << "_elmnt_s *last;" << std::endl;
-	header << "\tsize_t length;" << std::endl;	
+	header << "\tsize_t size;" << std::endl;	
 	header << "};" << std::endl << std::endl;
 
 	return true;
@@ -246,6 +246,7 @@ bool Queue::genLogic(std::ostream& logic)
 	logic << "\t\t\to->last->next = nE;" << std::endl;
 	logic << "\t\t\to->last = nE;" << std::endl;
 	logic << "\t\t\to->size++;" << std::endl;
+	logic << "\t\t}" << std::endl;
 	logic << "\t}" << std::endl;
 	logic << std::endl;
 
