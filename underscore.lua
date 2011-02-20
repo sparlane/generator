@@ -21,3 +21,7 @@ t4:memberAdd(newArray(t3), 'testA')
 
 -- try a queue
 q1 = m:newQueue(newSystemType('int'), 'testque')
+
+-- try a bst
+b1 = m:newBST(q1, 'testbst', false)
+b2 = m:newBST(t, 'testbst2', true)

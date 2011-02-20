@@ -179,6 +179,32 @@ int li_module_queue_create(lua_State *L)
 	return 1;
 }
 
+// bst *b = Module:bstCreate(name)
+int li_module_bst_create(lua_State *L)
+{
+	CHECK_COUNT("bstCreate",4)
+	CHECK_ARGUMENT("bstCreate",3,string)
+	CHECK_ARGUMENT("bstCreate",4,boolean)
+	
+	// check we have a module, then convert it to a Module
+	CHECK_ARGUMENT_TYPE("queueCreate",1,Module,m)
+	// check we have an element
+	CHECK_ARGUMENT_TYPE("queueCreate",2,Element,e)
+	// now create the BST
+	
+	BST *b = new BST(e, m, new std::string(luaL_checkstring(L, 3)), lua_toboolean(L, 4));
+	if(b == NULL) gen_error("bst could not be created");
+	
+	// now add this BST to the module
+	m->objectAdd(new std::string(luaL_checkstring(L, 3)), b);
+	
+	CREATE_TABLE(L, b);
+	b->lua_table(L);
+		
+	// now we just return the table :)
+	return 1;
+}
+
 // bool = Module:addInclude(string)
 int li_module_include_add(lua_State *L)
 {
