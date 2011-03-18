@@ -1,3 +1,12 @@
+char = newSystemType('char')
+int = newSystemType('int')
+size = newSystemType('size_t')
+uint32 = newSystemType('uint32_t')
+
+pchar = newPointer(char, 'free')
+
+require 'us/common'
+
 m = moduleCreate('scott', 'lib', 'us_', 'us_')
 t = m:newType('test')
 

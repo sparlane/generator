@@ -8,7 +8,7 @@ static char *to_upper_string(const char *str)
 	if(str == NULL) return NULL;
 	size_t len = strlen(str);
 	char *ret = (char *)malloc(len + 1);
-	for(int i = 0; i < len; i++)
+	for(size_t i = 0; i < len; i++)
 	{
 		ret[i] = toupper(str[i]);
 	}

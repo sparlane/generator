@@ -4,7 +4,7 @@ CXXFILES:=main.cpp world.cpp module.cpp luainterface.cpp\
 	$(addprefix generate/, object.cpp function.cpp rtype.cpp pointer.cpp array.cpp \
 				type.cpp queue.cpp bst.cpp)
 
-G++:=clang++
+G++:=g++
 
 OFILES:=$(CXXFILES:.cpp=.o)
 
