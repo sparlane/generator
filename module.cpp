@@ -102,7 +102,7 @@ bool Module::generate(std::string *name)
 
 	for( ; curr != end ; ++curr)
 	{
-		header << "typedef struct " << this->funcPrefix() << curr->first << "_s *" << this->funcPrefix() << curr->first << ";" << std::endl;
+		curr->second->genTypeDef(header);
 	}
 	header << std::endl;
 
@@ -134,22 +134,25 @@ bool Module::generate(std::string *name)
 	// now generate each of the logic files
 	for(curr = objectsIterBegin() ; curr != end ; ++curr)
 	{
-		res = asprintf(&path, "output/%s/%s/%s%s_%s.c", this->Path->c_str(), name->c_str(), this->FilePrefix->c_str(), name->c_str(), curr->first->c_str());
-		if(res <= 0)
-			gen_error(strerror(errno));
-		
-		std::ofstream logic(path);
-		free(path);
-		path = NULL;
-		
-		logic << "#include <" << this->FilePrefix << name << ".h>" << std::endl;
-		
-		if(!curr->second->genLogic(logic))
+		if(curr->second->haveLogic())
 		{
-			std::cerr << "Error generating logic: " << curr->first << std::endl;
-			return false;
+			res = asprintf(&path, "output/%s/%s/%s%s_%s.c", this->Path->c_str(), name->c_str(), this->FilePrefix->c_str(), name->c_str(), curr->first->c_str());
+			if(res <= 0)
+				gen_error(strerror(errno));
+		
+			std::ofstream logic(path);
+			free(path);
+			path = NULL;
+		
+			logic << "#include <" << this->FilePrefix << name << ".h>" << std::endl;
+		
+			if(!curr->second->genLogic(logic))
+			{
+				std::cerr << "Error generating logic: " << curr->first << std::endl;
+				return false;
+			}
+			logic.flush();
 		}
-		logic.flush();
 	}
 	
 	// now generate each of the template files
@@ -190,9 +193,12 @@ bool Module::generate(std::string *name)
 		// for each file we produce, add it
 		for(curr = objectsIterBegin() ; curr != end ; ++curr)
 		{
-			lbout << "\t\ttable.insert(files, file('" << this->Path 
-				<< "/" << name << "/" << this->FilePrefix << name 
-				<< "_" << curr->first << ".c'))" << std::endl;
+			if(curr->second->haveLogic())
+			{
+				lbout << "\t\ttable.insert(files, file('" << this->Path 
+					<< "/" << name << "/" << this->FilePrefix << name 
+					<< "_" << curr->first << ".c'))" << std::endl;
+			}
 		}
 		// add the logic files (if needed)
 		for(curr = objectsIterBegin() ; curr != end ; ++curr)

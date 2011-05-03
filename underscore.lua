@@ -34,3 +34,11 @@ q1 = m:newQueue(newSystemType('int'), 'testque')
 -- try a bst
 b1 = m:newBST(q1, 'testbst', false)
 b2 = m:newBST(t, 'testbst2', true)
+
+fp = m:newFunctionPointer('test_int_giving',newSystemType('int'))
+fp:memberAdd(t,'test')
+
+ts = m:newType('finalTest')
+ts:memberAdd(fp,'func')
+
+ts:memberAdd(t4, 'testB')

@@ -543,6 +543,12 @@ bool BST::genType(std::ostream& header)
 	return true;
 }
 
+bool BST::genTypeDef(std::ostream& header)
+{
+	header << "typedef struct " << this->module()->funcPrefix() << this->name() << "_s *" << this->module()->funcPrefix() << this->name() << ";" << std::endl;
+	return true;
+}
+
 bool BST::genStruct(std::ostream& header, std::string name)
 {
 	header << this->module()->funcPrefix() << this->name() << " " << name;

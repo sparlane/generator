@@ -36,7 +36,7 @@ bool Object::destroy_lock_code_print(std::ostream& f)
 
 bool Object::genSetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Object *t)
 {
-	header << "bool " << Mod->funcPrefix() << name << "_set(";
+	header << "bool " << Mod->funcPrefix() << t->name() << "_" << name << "_set(";
 	t->genStruct(header, "o");
 	header << ", ";
 	this->genStruct(header, "v");
@@ -47,7 +47,7 @@ bool Object::genSetFunctionDef(std::ostream& header, std::string *name, Module *
 bool Object::genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Object *t)
 {
 	this->genType(header);
-	header << " " << Mod->funcPrefix() << name << "_get(";
+	header << " " << Mod->funcPrefix() << t->name() << "_" << name << "_get(";
 	t->genStruct(header, "o");
 	header << ")";
 	return true;

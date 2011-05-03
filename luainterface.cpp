@@ -38,6 +38,19 @@ int li_type_memberAdd(lua_State *L)
 	return 1;
 }
 
+// bool memberAdd(FunctionPointer, Member)
+int li_fp_memberAdd(lua_State *L)
+{
+	CHECK_COUNT("memberAdd",3)
+	CHECK_ARGUMENT_TYPE("memberAdd",1,FunctionPointer,fp)
+	CHECK_ARGUMENT_TYPE("memberAdd",2,Element,e)
+	CHECK_ARGUMENT("memberAdd",3,string)
+
+	lua_pushboolean(L,fp->memberAdd(e, new std::string(lua_tostring(L, 3))));
+
+	return 1;
+}
+
 // bool paramAdd(Function, Member)
 int li_function_paramAdd(lua_State *L)
 {
@@ -149,6 +162,31 @@ int li_module_type_create(lua_State *L)
 	
 	CREATE_TABLE(L, t);
 	t->lua_table(L);
+		
+	// now we just return the table :)
+	return 1;
+}
+
+// FunctionPointer *fp = Module:functionPointerCreate(name,rt)
+int li_module_function_pointer_create(lua_State *L)
+{
+	CHECK_COUNT("newFunctionPointer",3)
+	CHECK_ARGUMENT("newFunctionPointer",2,string)
+	// check we have a module, then convert it to a Module
+	CHECK_ARGUMENT_TYPE("newFunctionPointer",1,Module,m)
+	// check we have an element, then convert it to an Element
+	CHECK_ARGUMENT_TYPE("newFunctionPointer",3,Element,e)
+	
+	// now create the FunctionPointer
+	
+	FunctionPointer *fp = new FunctionPointer(m, new std::string(luaL_checkstring(L, 2)), e);
+	if(fp == NULL) gen_error("function pointer could not be created");
+	
+	// now add this function pointer to the module
+	m->objectAdd(new std::string(luaL_checkstring(L, 2)), fp);
+	
+	CREATE_TABLE(L, fp);
+	fp->lua_table(L);
 		
 	// now we just return the table :)
 	return 1;

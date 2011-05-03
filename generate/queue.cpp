@@ -334,6 +334,12 @@ bool Queue::genType(std::ostream& header)
 	return true;
 }
 
+bool Queue::genTypeDef(std::ostream& header)
+{
+	header << "typedef struct " << this->module()->funcPrefix() << this->name() << "_s *" << this->module()->funcPrefix() << this->name() << ";" << std::endl;
+	return true;
+}
+
 bool Queue::genStruct(std::ostream& header, std::string name)
 {
 	header << this->module()->funcPrefix() << this->name() << " " << name;

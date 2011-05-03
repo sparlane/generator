@@ -335,6 +335,12 @@ bool Type::genType(std::ostream& header)
 	return true;
 }
 
+bool Type::genTypeDef(std::ostream& header)
+{
+	header << "typedef struct " << this->module()->funcPrefix() << this->name() << "_s *" << this->module()->funcPrefix() << this->name() << ";" << std::endl;
+	return true;
+}
+
 bool Type::genStruct(std::ostream& header, std::string name)
 {
 	header << this->module()->funcPrefix() << this->name() << " " << name;
