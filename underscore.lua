@@ -2,10 +2,14 @@ char = newSystemType('char')
 int = newSystemType('int')
 size = newSystemType('size_t')
 uint32 = newSystemType('uint32_t')
+bool = newSystemType('bool')
 
 pchar = newPointer(char, 'free')
+pvoid = newSystemType('void *')
 
 require 'us/common'
+require 'us/thread'
+require 'us/jq'
 
 m = moduleCreate('scott', 'lib', 'us_', 'us_')
 t = m:newType('test')
@@ -36,7 +40,7 @@ b1 = m:newBST(q1, 'testbst', false)
 b2 = m:newBST(t, 'testbst2', true)
 
 fp = m:newFunctionPointer('test_int_giving',newSystemType('int'))
-fp:memberAdd(t,'test')
+fp:paramAdd(t,'test')
 
 ts = m:newType('finalTest')
 ts:memberAdd(fp,'func')

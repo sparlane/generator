@@ -245,7 +245,7 @@ namespace generator {
 			virtual bool genTemplate(std::ostream& templ);
 			virtual bool needs_disconnecting() { return false; };
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,FunctionPointer)
-							LUA_ADD_TABLE_FUNC(L, "memberAdd", li_fp_memberAdd);
+							LUA_ADD_TABLE_FUNC(L, "paramAdd", li_fp_memberAdd);
 							super::lua_table_r(L); }
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};

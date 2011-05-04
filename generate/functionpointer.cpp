@@ -21,7 +21,7 @@ bool FunctionPointer::memberAdd(Element *m, std::string *name)
 
 bool FunctionPointer::genType(std::ostream& header)
 {
-	header << this->module()->funcPrefix() << this->name();
+	header << this->module()->funcPrefix() << this->module()->name() << "_" << this->name();
 	return true;
 }
 
@@ -31,7 +31,7 @@ bool FunctionPointer::genTypeDef(std::ostream& header)
 	std::map<std::string *, Element *>::iterator pend = paramsIterEnd();
 
 	this->ReturnType->genType(header);
-	header << " (*" << this->name() << ")(";
+	header << " (*" << this->module()->funcPrefix() << this->module()->name() << "_" << this->name() << ")(";
 
 	if(pcurr == pend)
 	{
@@ -57,7 +57,7 @@ bool FunctionPointer::genStruct(std::ostream& header)
 
 bool FunctionPointer::genStruct(std::ostream& header, std::string name)
 {
-	header << this->module()->funcPrefix() << this->name() << " " << name;
+	header << this->module()->funcPrefix() << this->module()->name() << "_" << this->name() << " " << name;
 	return true;
 }
 
