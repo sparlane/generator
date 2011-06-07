@@ -320,6 +320,8 @@ bool Type::haveFunctions()
 bool Type::memberAdd(Member<Element> *m, std::string *name)
 {
 	this->members.insert(std::make_pair(name, m));
+	std::string inc = m->include();
+	if(inc != "") this->module()->includeAdd(new std::string(inc));
 	return true;
 }
 

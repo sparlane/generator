@@ -1,5 +1,5 @@
-#include <string>
 #include <iostream>
+#include <string>
 #include <map>
 #include <vector>
 #include <sstream>
@@ -103,6 +103,7 @@ namespace generator {
 			virtual bool print_disconnect(std::ostream& logic) { return true; };
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Element) }
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
+			virtual std::string include() = 0;
 	};
 	
 	template <class T>
@@ -135,6 +136,10 @@ namespace generator {
 			virtual bool genLogic(std::ostream& of, std::string *name, Module *Mod, Object *t)
 			{
 				return type->genLogic(of, name, Mod, t);
+			}
+			virtual std::string include()
+			{
+				return type->include();
 			}
 	};
 	
@@ -170,7 +175,8 @@ namespace generator {
 			virtual bool genTemplate(std::ostream& templ) = 0;
 			virtual bool haveFunctions() { return false; };
 			virtual bool haveLogic() = 0;
-			virtual std::string initValue() { return "NULL"; };			
+			virtual std::string initValue() { return "NULL"; };
+			virtual std::string include();		
 			virtual bool lock_code_print(std::ostream& f, bool null);
 			virtual bool unlock_code_print(std::ostream& f);
 			virtual bool needs_connecting() { return (!nolock && !noref); };
@@ -287,6 +293,7 @@ namespace generator {
 			virtual bool genLogic(std::ostream& logic, std::string *name, Module *Mod, Object *t);
 			virtual bool genDestruct(std::ostream& logic, std::string *name);
 			virtual std::string initValue() { return "0"; };
+			virtual std::string include() { return ""; };
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,SystemType)
 						super::lua_table_r(L); }
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
@@ -307,6 +314,7 @@ namespace generator {
 			virtual bool genLogic(std::ostream& logic, std::string *name, Module *Mod, Object *t);
 			virtual bool genDestruct(std::ostream& logic, std::string *name);
 			virtual std::string initValue() { return "NULL"; };
+			virtual std::string include() { return ""; };
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Pointer)
 						super::lua_table_r(L); }
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
@@ -328,6 +336,7 @@ namespace generator {
 			virtual bool genLogic(std::ostream& logic, std::string *name, Module *Mod, Object *t);
 			virtual bool genDestruct(std::ostream& logic, std::string *name);
 			virtual std::string initValue() { return "NULL"; };
+			virtual std::string include() { return Of->include(); };
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Array)
 						super::lua_table_r(L); }
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };

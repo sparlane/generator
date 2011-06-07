@@ -1,5 +1,7 @@
 tm = moduleCreate('thread', 'lib', 'us_', 'us_')
 
+tm:addInclude('stdint.h')
+
 thread = tm:newType('thread')
 
 thread:memberAdd(newPointer(newSystemType('pthread_t'),'free'),'t',true,false,'malloc(sizeof(pthread_t))')

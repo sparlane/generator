@@ -111,6 +111,9 @@ bool Module::generate(std::string *name)
 	// (pthread.h is needed for locking)
 	header << "#include <pthread.h>" << std::endl;
 	
+	this->includes.sort();
+	this->includes.unique();
+
 	for(std::list<std::string *>::iterator I = this->includes.begin(); I != this->includes.end(); I++)
 	{
 		header << "#include <" << *I << ">" << std::endl;

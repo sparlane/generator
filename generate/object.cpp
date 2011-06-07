@@ -140,3 +140,11 @@ bool Object::genDestruct(std::ostream& logic, std::string *name)
 {
 	return true;
 }
+
+std::string Object::include()
+{
+	std::string str;
+	str = *this->module()->filePrefix() + *this->module()->name() + std::string(".h");
+	std::cout << "Include: " << str << std::endl;
+	return str;
+}
