@@ -1,5 +1,7 @@
 m = moduleCreate('common', 'lib', 'us_', 'us_')
 
+m:addInclude('stdint.h')
+
 sl = m:newType('string_length',true,true)
 
 sl:memberAdd(pchar,'string',true,true)

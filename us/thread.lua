@@ -10,7 +10,7 @@ thread:memberAdd(bool,'started',true,false,'false')
 thread_start = thread:functionCreate('start',bool)
 thread_enter = thread:functionCreate('enter',bool)
 
-thread_fp = m:newFunctionPointer('thread_func',bool)
+thread_fp = tm:newFunctionPointer('thread_func',bool)
 thread_fp:paramAdd(thread,'t')
 
 thread:memberAdd(thread_fp, 'func',true,true)

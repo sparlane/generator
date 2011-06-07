@@ -11,4 +11,4 @@ job:memberAdd(pvoid,'data')
 
 jq:memberAdd(m:newBST(job,'job_bst',true),'pending')
 jq:memberAdd(newArray(thread),'handlers')
-jq:memberAdd(newSystemType('us_condition'),'jobs_cond')
+jq:memberAdd(m:newConditional("my_cond"),'jobs_cond')

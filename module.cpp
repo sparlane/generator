@@ -32,10 +32,28 @@ bool Module::objectAdd(std::string *oName, Object *object)
 	return true;
 }
 
+std::map<std::string *, Object *>::iterator Module::fpIterBegin()
+{
+	return this->FunctionPointers->begin();
+}
+
+std::map<std::string *, Object *>::iterator Module::fpIterEnd()
+{
+	return this->FunctionPointers->end();
+}
+
+bool Module::fpAdd(std::string *oName, Object *object)
+{
+	this->FunctionPointers->insert(std::pair<std::string *, Object *>(oName, object));
+	return true;
+}
+
 bool Module::generate(std::string *name)
 {
 	std::map<std::string *, Object *>::iterator curr = objectsIterBegin();
 	std::map<std::string *, Object *>::iterator end = objectsIterEnd();
+	std::map<std::string *, Object *>::iterator fp_curr = fpIterBegin();
+	std::map<std::string *, Object *>::iterator fp_end = fpIterEnd();
 
 	char *path = NULL;
 	int res = asprintf(&path, "output/%s", this->Path->c_str());
@@ -103,6 +121,12 @@ bool Module::generate(std::string *name)
 	for( ; curr != end ; ++curr)
 	{
 		curr->second->genTypeDef(header);
+	}
+	header << std::endl;
+
+	for( ; fp_curr != fp_end ; ++fp_curr)
+	{
+		fp_curr->second->genTypeDef(header);
 	}
 	header << std::endl;
 

@@ -30,6 +30,7 @@ bool FunctionPointer::genTypeDef(std::ostream& header)
 	std::map<std::string *, Element *>::iterator pcurr = paramsIterBegin();
 	std::map<std::string *, Element *>::iterator pend = paramsIterEnd();
 
+	header << "typedef ";
 	this->ReturnType->genType(header);
 	header << " (*" << this->module()->funcPrefix() << this->module()->name() << "_" << this->name() << ")(";
 
@@ -46,7 +47,6 @@ bool FunctionPointer::genTypeDef(std::ostream& header)
 		}
 	}
 	header << ");" << std::endl;
-	header << std::endl;
 	return true;
 }
 

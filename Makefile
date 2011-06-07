@@ -2,7 +2,8 @@ CXXFLAGS:=-Iinclude -D_GNU_SOURCE -ggdb -g -Wall -Werror -Wreturn-type
 LXXFLAGS:=`pkg-config --cflags --libs lua` -ggdb -g
 CXXFILES:=main.cpp world.cpp module.cpp luainterface.cpp\
 	$(addprefix generate/, object.cpp function.cpp rtype.cpp pointer.cpp array.cpp \
-				type.cpp queue.cpp bst.cpp functionpointer.cpp)
+				type.cpp queue.cpp bst.cpp functionpointer.cpp \
+				conditional.cpp)
 
 G++:=g++
 

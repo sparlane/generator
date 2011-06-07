@@ -183,7 +183,7 @@ int li_module_function_pointer_create(lua_State *L)
 	if(fp == NULL) gen_error("function pointer could not be created");
 	
 	// now add this function pointer to the module
-	m->objectAdd(new std::string(luaL_checkstring(L, 2)), fp);
+	m->fpAdd(new std::string(luaL_checkstring(L, 2)), fp);
 	
 	CREATE_TABLE(L, fp);
 	fp->lua_table(L);
@@ -240,6 +240,24 @@ int li_module_bst_create(lua_State *L)
 	b->lua_table(L);
 		
 	// now we just return the table :)
+	return 1;
+}
+
+// Condition * = newCondition()
+int li_module_conditional_create(lua_State *L)
+{
+	CHECK_COUNT("newConditional", 2)
+	CHECK_ARGUMENT("newConditional",2,string)
+	CHECK_ARGUMENT_TYPE("newConditional",1,Module,m)
+
+	Conditional *c = new Conditional(m, new std::string(luaL_checkstring(L, 2)));
+	if(c == NULL) gen_error("conditional could not be created");
+	
+	m->objectAdd(new std::string(luaL_checkstring(L, 2)), c);
+	CREATE_TABLE(L, c);
+	c->lua_table(L);
+	
+	// return the table
 	return 1;
 }
 

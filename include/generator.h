@@ -67,6 +67,7 @@ extern "C" {
 	int li_module_function_pointer_create(lua_State *L);
 	int li_module_queue_create(lua_State *L);
 	int li_module_bst_create(lua_State *L);
+	int li_module_conditional_create(lua_State *L);
 	int li_module_include_add(lua_State *L);
 	int li_fp_memberAdd(lua_State *L);
 };
@@ -310,7 +311,7 @@ namespace generator {
 						super::lua_table_r(L); }
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
-	
+
 	class Array : public Element {
 		private:
 			typedef Element super;
@@ -394,6 +395,34 @@ namespace generator {
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 
+	class Conditional : public Object {
+		private:
+			typedef Object super;
+			virtual bool genLockFunctionDef(std::ostream& header, bool unlock);
+			virtual bool genWaitFunctionDef(std::ostream& header);
+			virtual bool genSignalFunctionDef(std::ostream& header);
+			virtual bool create_def_print(std::ostream& f);
+			virtual bool func_def_print(std::ostream& f, std::string fname);
+			virtual bool create_func_print(std::ostream& f);		
+			virtual bool destroy_func_print(std::ostream& f);
+			virtual bool ref_func_print(std::ostream& f);
+			virtual bool unref_func_print(std::ostream& f);
+		public:
+			explicit Conditional(Module *mod, std::string *objName) : Object(mod, objName, false, false) { };
+			virtual bool genType(std::ostream& header);
+			virtual bool genTypeDef(std::ostream& header);
+			virtual bool genStruct(std::ostream& header, std::string name);
+			virtual bool genTemplate(std::ostream& templ);
+			virtual bool genStruct(std::ostream& header);
+			virtual bool genFunctionDefs(std::ostream& header, Module *Mod);
+			virtual bool genLogic(std::ostream& logic);
+			virtual bool haveLogic() { return true; };
+			virtual std::string initValue() { return "NULL"; };
+			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Conditional)
+						super::lua_table_r(L); }
+			virtual void lua_table(lua_State *L) { lua_table_r(L); };
+	};
+	
 	class Module {
 		private:
 			std::string *Name;
@@ -405,11 +434,15 @@ namespace generator {
 			std::map<std::string *, Object *> *Objects;
 			std::map<std::string *, Object *>::iterator objectsIterBegin();
 			std::map<std::string *, Object *>::iterator objectsIterEnd();
+			std::map<std::string *, Object *> *FunctionPointers;
+			std::map<std::string *, Object *>::iterator fpIterBegin();
+			std::map<std::string *, Object *>::iterator fpIterEnd();
 			std::list<std::string *> includes;
 		public:
 			explicit Module(std::string *name, std::string *Path, std::string *FilePrefix, std::string *FuncPrefix) :
 			Name(name), Path(Path), FilePrefix(FilePrefix), FuncPrefix(FuncPrefix)
-			{ this->Objects = new std::map<std::string *, Object *>(); };
+			{ this->Objects = new std::map<std::string *, Object *>(); this->FunctionPointers = new std::map<std::string *, Object *>(); };
+			bool fpAdd(std::string *objName, Object *object);
 			bool objectAdd(std::string *objName, Object *object);
 			Object *objectFind(std::string *objName);
 			bool generate(std::string *name);
@@ -422,6 +455,7 @@ namespace generator {
 							LUA_ADD_TABLE_FUNC(L,"newFunctionPointer",li_module_function_pointer_create)
 							LUA_ADD_TABLE_FUNC(L,"newQueue",li_module_queue_create)
 							LUA_ADD_TABLE_FUNC(L,"newBST",li_module_bst_create)
+							LUA_ADD_TABLE_FUNC(L,"newConditional",li_module_conditional_create)
 							LUA_ADD_TABLE_FUNC(L,"addInclude",li_module_include_add)
 						}
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
