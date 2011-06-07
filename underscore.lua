@@ -10,6 +10,7 @@ pvoid = newSystemType('void *')
 require 'us/common'
 require 'us/thread'
 require 'us/jq'
+require 'us/lua'
 
 m = moduleCreate('scott', 'lib', 'us_', 'us_')
 t = m:newType('test')
