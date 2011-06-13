@@ -1,16 +1,18 @@
 char = newSystemType('char')
 int = newSystemType('int')
 size = newSystemType('size_t')
+uint8 = newSystemType('uint8_t')
 uint32 = newSystemType('uint32_t')
 bool = newSystemType('bool')
 
 pchar = newPointer(char, 'free')
-pvoid = newSystemType('void *')
+pvoid = newPointer(newSystemType('void'),'free')
 
 require 'us/common'
 require 'us/thread'
 require 'us/jq'
 require 'us/lua'
+require 'us/datacoding'
 
 m = moduleCreate('scott', 'lib', 'us_', 'us_')
 t = m:newType('test')

@@ -16,7 +16,16 @@ std::map<std::string *, Member<Element> *>::iterator Function::paramsIterEnd()
 bool Function::paramAdd(std::string *name, Member<Element> *m)
 {
 	this->parameters.insert(std::make_pair(name, m));
+	std::string inc = m->include();
+	if(inc != "") this->myIncludes.push_back(new std::string(inc));
 	return true;
+}
+
+std::list<std::string *> Function::includes()
+{
+	std::string inc = this->ReturnType->include();
+	if(inc != "") this->myIncludes.push_back(new std::string(inc));
+	return this->myIncludes;
 }
 
 bool Function::genFunctionDef(std::ostream &of, Module *Mod, Type *t, bool tpl, bool type)

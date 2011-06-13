@@ -111,6 +111,16 @@ bool Module::generate(std::string *name)
 	// (pthread.h is needed for locking)
 	header << "#include <pthread.h>" << std::endl;
 	
+	for(curr = objectsIterBegin(); curr != end; ++curr)
+	{
+		std::list<std::string *> list = curr->second->getFuncIncludes();
+		
+		for(std::list<std::string *>::iterator scurr = list.begin(); scurr != list.end(); scurr++)
+		{
+			this->includes.push_back(*scurr);
+		}
+	}
+	
 	this->includes.sort();
 	this->includes.unique();
 
@@ -121,7 +131,7 @@ bool Module::generate(std::string *name)
 	
 	header << std::endl;
 
-	for( ; curr != end ; ++curr)
+	for(curr = objectsIterBegin() ; curr != end ; ++curr)
 	{
 		curr->second->genTypeDef(header);
 	}

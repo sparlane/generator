@@ -119,7 +119,7 @@ namespace generator {
 			std::string Name() { return this->name; };
 			bool isInit() { return this->init; };
 			bool isInput() { return (this->init && this->input); }
-			std::string *getInit() { return this->initString; };
+			std::string *getInit() { return (this->initString == NULL) ? new std::string(type->initValue()) : this->initString; };
 			// functions for generator output
 			virtual bool genStruct(std::ostream& of, std::string name)
 			{
@@ -176,7 +176,8 @@ namespace generator {
 			virtual bool haveFunctions() { return false; };
 			virtual bool haveLogic() = 0;
 			virtual std::string initValue() { return "NULL"; };
-			virtual std::string include();		
+			virtual std::string include();
+			virtual std::list<std::string *> getFuncIncludes() = 0;
 			virtual bool lock_code_print(std::ostream& f, bool null);
 			virtual bool unlock_code_print(std::ostream& f);
 			virtual bool needs_connecting() { return (!nolock && !noref); };
@@ -217,6 +218,7 @@ namespace generator {
 			virtual bool print_connect(std::ostream& f);
 			virtual bool print_disconnect(std::ostream& f);
 			virtual bool needs_disconnecting() { return true; };
+			virtual std::list<std::string *> getFuncIncludes();
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Type)
 						LUA_ADD_TABLE_FUNC(L, "memberAdd", li_type_memberAdd);
 						LUA_ADD_TABLE_FUNC(L, "functionCreate", li_type_functionCreate);
@@ -251,6 +253,7 @@ namespace generator {
 			virtual bool haveLogic() { return false; };
 			virtual bool genTemplate(std::ostream& templ);
 			virtual bool needs_disconnecting() { return false; };
+			virtual std::list<std::string *> getFuncIncludes() { return std::list<std::string *>(); };
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,FunctionPointer)
 							LUA_ADD_TABLE_FUNC(L, "paramAdd", li_fp_memberAdd);
 							super::lua_table_r(L); }
@@ -264,6 +267,7 @@ namespace generator {
 			std::map<std::string *, Member<Element> *>::iterator paramsIterBegin();
 			std::map<std::string *, Member<Element> *>::iterator paramsIterEnd();
 			std::string *Name;
+			std::list<std::string *> myIncludes;
 			Element *ReturnType;
 			bool genFunctionDef(std::ostream& header, Module *Mod, Type *t, bool tpl, bool type);
 			bool genFunctionCall(std::ostream& header, Module *Mod, Type *t, bool tpl, bool type);
@@ -274,6 +278,7 @@ namespace generator {
 			bool genFunctionDefs(std::ostream& header, Module *Mod, Type *t);
 			bool genLogic(std::ostream& logic, Module *Mod, Type *t);
 			bool genTemplate(std::ostream& templ, Module *Mod, Type *t);
+			std::list<std::string *> includes();
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Function)
 						LUA_ADD_TABLE_FUNC(L, "paramAdd", li_function_paramAdd); }
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
@@ -335,7 +340,7 @@ namespace generator {
 			virtual bool genFunctionDefs(std::ostream& header, std::string *, Module *Mod, Object *t);
 			virtual bool genLogic(std::ostream& logic, std::string *name, Module *Mod, Object *t);
 			virtual bool genDestruct(std::ostream& logic, std::string *name);
-			virtual std::string initValue() { return "NULL"; };
+			virtual std::string initValue() { return std::string("NULL"); };
 			virtual std::string include() { return Of->include(); };
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Array)
 						super::lua_table_r(L); }
@@ -362,6 +367,7 @@ namespace generator {
 			virtual bool genLogic(std::ostream& logic);
 			virtual bool genTemplate(std::ostream& templ);
 			virtual bool haveLogic() { return true; };
+			virtual std::list<std::string *> getFuncIncludes() { return std::list<std::string *>(); };
 
 			// Queue specific
 			virtual bool genPushFunctionDef(std::ostream& header);
@@ -394,6 +400,7 @@ namespace generator {
 			virtual bool genTemplate(std::ostream& templ);
 			virtual bool haveFunctions() { return ownfunc; };
 			virtual bool haveLogic() { return true; };
+			virtual std::list<std::string *> getFuncIncludes() { return std::list<std::string *>(); };
 			// BST specific
 			virtual bool genInsertFunctionDef(std::ostream& header);
 			virtual bool genFindFunctionDef(std::ostream& header);
@@ -426,6 +433,7 @@ namespace generator {
 			virtual bool genFunctionDefs(std::ostream& header, Module *Mod);
 			virtual bool genLogic(std::ostream& logic);
 			virtual bool haveLogic() { return true; };
+			virtual std::list<std::string *> getFuncIncludes() { return std::list<std::string *>(); };
 			virtual std::string initValue() { return "NULL"; };
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Conditional)
 						super::lua_table_r(L); }

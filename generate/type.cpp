@@ -16,7 +16,7 @@ bool Type::create_def_print(std::ostream& f)
 		if(mcurr->second->isInput())
 		{
 			if(count != 0)
-			f << " ,";
+			f << ", ";
 			if(!mcurr->second->genStruct(f, *mcurr->first)) return false;
 			count++;
 		}
@@ -316,6 +316,21 @@ bool Type::haveFunctions()
 	return false;
 }
 
+std::list<std::string *> Type::getFuncIncludes()
+{
+	std::list<std::string *> retlist;
+	std::map<std::string *, Function *>::iterator fcurr;
+	for(fcurr = functionIterBegin(); fcurr != functionIterEnd(); ++fcurr)
+	{
+		std::list<std::string *> list = fcurr->second->includes();
+		
+		for(std::list<std::string *>::iterator scurr = list.begin(); scurr != list.end(); scurr++)
+		{
+			retlist.push_back(*scurr);
+		}
+	}
+	return retlist;
+}
 
 bool Type::memberAdd(Member<Element> *m, std::string *name)
 {
