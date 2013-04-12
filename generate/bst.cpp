@@ -241,6 +241,11 @@ bool BST::genLogic(std::ostream& logic)
 	this->genNodeStruct(logic, "root");
 	logic << ", ";
 	this->genNodeStruct(logic, "node");
+	logic << ") __attribute((ownership_holds(malloc, 2)));" << std::endl;
+	logic << "static bool " << this->module()->funcPrefix() << this->name() << "_add_r(";
+	this->genNodeStruct(logic, "root");
+	logic << ", ";
+	this->genNodeStruct(logic, "node");
 	logic << ")" << std::endl;
 	logic << "{" << std::endl;
 	logic << "\tif(root == NULL || node == NULL) return false;" << std::endl;

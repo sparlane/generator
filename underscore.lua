@@ -1,8 +1,10 @@
 char = newSystemType('char')
+uchar = newSystemType('unsigned char')
 int = newSystemType('int')
 size = newSystemType('size_t')
 uint8 = newSystemType('uint8_t')
 uint32 = newSystemType('uint32_t')
+uint64 = newSystemType('uint64_t')
 bool = newSystemType('bool')
 
 pchar = newPointer(char, 'free')
@@ -13,6 +15,10 @@ require 'us/thread'
 require 'us/jq'
 require 'us/lua'
 require 'us/datacoding'
+require 'us/event'
+require 'us/encryption'
+require 'us/delay'
+require 'us/network'
 
 m = moduleCreate('scott', 'lib', 'us_', 'us_')
 t = m:newType('test')
@@ -49,3 +55,9 @@ ts = m:newType('finalTest')
 ts:memberAdd(fp,'func')
 
 ts:memberAdd(t4, 'testB')
+
+m = moduleCreate('example', 'lib', 'clang_', 'clang_')
+
+t = m:newType('test')
+
+t:memberAdd(newSystemType('int'), 'test')
