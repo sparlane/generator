@@ -316,22 +316,6 @@ bool Type::haveFunctions()
 	return false;
 }
 
-std::list<std::string *> Type::getFuncIncludes()
-{
-	std::list<std::string *> retlist;
-	std::map<std::string *, Function *>::iterator fcurr;
-	for(fcurr = functionIterBegin(); fcurr != functionIterEnd(); ++fcurr)
-	{
-		std::list<std::string *> list = fcurr->second->includes();
-		
-		for(std::list<std::string *>::iterator scurr = list.begin(); scurr != list.end(); scurr++)
-		{
-			retlist.push_back(*scurr);
-		}
-	}
-	return retlist;
-}
-
 bool Type::populate_dependencies(std::set<Module *>& deps)
 {
 	std::map<std::string *, Function *>::iterator fcurr;

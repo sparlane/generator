@@ -68,6 +68,7 @@ extern "C" {
 	int li_module_function_pointer_create(lua_State *L);
 	int li_module_queue_create(lua_State *L);
 	int li_module_bst_create(lua_State *L);
+	int li_module_heap_create(lua_State *L);
 	int li_module_conditional_create(lua_State *L);
 	int li_module_include_add(lua_State *L);
 	int li_fp_memberAdd(lua_State *L);
@@ -196,6 +197,7 @@ namespace generator {
 							LUA_ADD_TABLE_FUNC(L,"newFunctionPointer",li_module_function_pointer_create)
 							LUA_ADD_TABLE_FUNC(L,"newQueue",li_module_queue_create)
 							LUA_ADD_TABLE_FUNC(L,"newBST",li_module_bst_create)
+							LUA_ADD_TABLE_FUNC(L,"newHeap",li_module_heap_create)
 							LUA_ADD_TABLE_FUNC(L,"newConditional",li_module_conditional_create)
 							LUA_ADD_TABLE_FUNC(L,"addInclude",li_module_include_add)
 						}
@@ -235,7 +237,6 @@ namespace generator {
 			virtual bool haveLogic() = 0;
 			virtual std::string initValue() { return "NULL"; };
 			virtual std::string include();
-			virtual std::list<std::string *> getFuncIncludes() = 0;
 			virtual bool lock_code_print(std::ostream& f, bool null);
 			virtual bool unlock_code_print(std::ostream& f);
 			virtual bool needs_connecting() { return (!nolock && !noref); };
@@ -277,7 +278,6 @@ namespace generator {
 			virtual bool print_disconnect(std::ostream& f);
 			virtual bool needs_disconnecting() { return true; };
 			virtual bool populate_dependencies(std::set<Module *>& deps);
-			virtual std::list<std::string *> getFuncIncludes();
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Type)
 						LUA_ADD_TABLE_FUNC(L, "memberAdd", li_type_memberAdd);
 						LUA_ADD_TABLE_FUNC(L, "functionCreate", li_type_functionCreate);
@@ -312,7 +312,6 @@ namespace generator {
 			virtual bool haveLogic() { return false; };
 			virtual bool genTemplate(std::ostream& templ);
 			virtual bool needs_disconnecting() { return false; };
-			virtual std::list<std::string *> getFuncIncludes() { return std::list<std::string *>(); };
 			virtual bool populate_dependencies(std::set<Module *>& deps) { return true; };
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,FunctionPointer)
 							LUA_ADD_TABLE_FUNC(L, "paramAdd", li_fp_memberAdd);
@@ -429,7 +428,6 @@ namespace generator {
 			virtual bool genLogic(std::ostream& logic);
 			virtual bool genTemplate(std::ostream& templ);
 			virtual bool haveLogic() { return true; };
-			virtual std::list<std::string *> getFuncIncludes() { return std::list<std::string *>(); };
 			virtual bool populate_dependencies(std::set<Module *>& deps) { return true; };
 
 			// Queue specific
@@ -441,11 +439,12 @@ namespace generator {
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 	
-	class BST : public Object {
+	class Tree : public Object {
 		private:
 			typedef Object super;
 			bool ownfunc;
 			Element *Of;
+		protected:
 			virtual bool create_def_print(std::ostream& f);
 			virtual bool func_def_print(std::ostream& f, std::string fname);
 			virtual bool create_func_print(std::ostream& f);		
@@ -453,25 +452,61 @@ namespace generator {
 			virtual bool ref_func_print(std::ostream& f);
 			virtual bool unref_func_print(std::ostream& f);
 		public:
-			explicit BST(Element *of, Module *mod, std::string *objName, bool func) : Object(mod, objName, false, false),  ownfunc(func), Of(of) {};
+			explicit Tree(Element *of, Module *mod, std::string *objName, bool func) : Object(mod, objName, false, false), ownfunc(func), Of(of) {};
+			virtual bool haveFunctions() { return ownfunc; };
+			virtual Element *of() { return this->Of; };
+			
 			virtual bool genStruct(std::ostream& header, std::string name);
 			virtual bool genType(std::ostream& header);
 			virtual bool genTypeDef(std::ostream& header);
 			virtual bool genStruct(std::ostream& header);
 			virtual bool genFunctionDefs(std::ostream& header, Module *Mod);
-			virtual bool genLogic(std::ostream& logic);
-			virtual bool genTemplate(std::ostream& templ);
-			virtual bool haveFunctions() { return ownfunc; };
 			virtual bool haveLogic() { return true; };
-			virtual std::list<std::string *> getFuncIncludes() { return std::list<std::string *>(); };
-			virtual bool populate_dependencies(std::set<Module *>& deps) { return true; };
 
-			// BST specific
+			virtual bool populate_dependencies(std::set<Module *>& deps) { return true; };
+			
 			virtual bool genInsertFunctionDef(std::ostream& header);
 			virtual bool genFindFunctionDef(std::ostream& header);
 			virtual bool genRemoveFunctionDef(std::ostream& header);
 			virtual bool genNodeStruct(std::ostream& header, std::string name);
+			
+			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Tree)
+						super::lua_table_r(L); }
+			virtual void lua_table(lua_State *L) { lua_table_r(L); };
+	};
+	
+	class BST : public Tree {
+		private:
+			typedef Tree super;
+		public:
+			explicit BST(Element *of, Module *mod, std::string *objName, bool func) : Tree(of, mod, objName, func) {};
+			
+
+			virtual bool genLogic(std::ostream& logic);
+			virtual bool genTemplate(std::ostream& templ);
+
+			// BST specific
+			
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,BST)
+						super::lua_table_r(L); }
+			virtual void lua_table(lua_State *L) { lua_table_r(L); };
+	};
+	
+	class Heap : public Tree {
+		private:
+			typedef Tree super;
+			bool max;
+		public:
+			explicit Heap(Element *of, Module *mod, std::string *objName, bool func, bool max) : Tree(of, mod, objName, func), max(max) {};
+
+			virtual bool genLogic(std::ostream& logic);
+			virtual bool genTemplate(std::ostream& templ);
+
+			virtual bool genRemoveFunctionDef(std::ostream& header);
+			virtual bool genFunctionDefs(std::ostream& header, Module *Mod);
+			
+			// HEAP specific
+			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,HEAP)
 						super::lua_table_r(L); }
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
@@ -498,7 +533,6 @@ namespace generator {
 			virtual bool genFunctionDefs(std::ostream& header, Module *Mod);
 			virtual bool genLogic(std::ostream& logic);
 			virtual bool haveLogic() { return true; };
-			virtual std::list<std::string *> getFuncIncludes() { return std::list<std::string *>(); };
 			virtual bool populate_dependencies(std::set<Module *>& deps) { return true; };
 
 			virtual std::string initValue() { return "NULL"; };

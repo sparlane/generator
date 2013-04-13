@@ -243,6 +243,34 @@ int li_module_bst_create(lua_State *L)
 	return 1;
 }
 
+// heap *b = Module:heapCreate(name)
+int li_module_heap_create(lua_State *L)
+{
+	CHECK_COUNT("heapCreate",5)
+	CHECK_ARGUMENT("heapCreate",3,string)
+	CHECK_ARGUMENT("heapCreate",4,boolean)
+	CHECK_ARGUMENT("heapCreate",5,boolean)
+	
+	// check we have a module, then convert it to a Module
+	CHECK_ARGUMENT_TYPE("heapCreate",1,Module,m)
+	// check we have an element
+	CHECK_ARGUMENT_TYPE("heapCreate",2,Element,e)
+	// now create the Heap
+	
+	Heap *h = new Heap(e, m, new std::string(luaL_checkstring(L, 3)), lua_toboolean(L, 4), lua_toboolean(L, 5));
+	if(h == NULL) gen_error("heap could not be created");
+	
+	// now add this Heap to the module
+	m->objectAdd(new std::string(luaL_checkstring(L, 3)), h);
+	
+	CREATE_TABLE(L, h);
+	h->lua_table(L);
+		
+	// now we just return the table :)
+	return 1;
+}
+
+
 // Condition * = newCondition()
 int li_module_conditional_create(lua_State *L)
 {
