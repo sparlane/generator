@@ -5,8 +5,8 @@ using namespace std;
 
 bool Type::create_def_print(std::ostream& f)
 {
-	std::map<std::string *, Member<Element > *>::iterator mcurr = memberIterBegin();
-	std::map<std::string *, Member<Element > *>::iterator mend = memberIterEnd();
+	MemberList::iterator mcurr = memberIterBegin();
+	MemberList::iterator mend = memberIterEnd();
 
 	this->genType(f);
 	f << " " << this->module()->funcPrefix() << this->name() << "_create(";
@@ -49,8 +49,8 @@ bool Type::print_connect(std::ostream& f)
 
 bool Type::create_func_print(std::ostream& f)
 {
-	std::map<std::string *, Member<Element> *>::iterator mcurr = memberIterBegin();
-	std::map<std::string *, Member<Element> *>::iterator mend = memberIterEnd();
+	MemberList::iterator mcurr = memberIterBegin();
+	MemberList::iterator mend = memberIterEnd();
 
 	f << " /* Create a " << this->name() << " */" << std::endl;
 	f << "{" << std::endl;
@@ -105,8 +105,8 @@ bool Type::create_func_print(std::ostream& f)
 
 bool Type::destroy_func_print(std::ostream& f)
 {
-	std::map<std::string *, Member<Element> *>::iterator mcurr = memberIterBegin();
-	std::map<std::string *, Member<Element> *>::iterator mend = memberIterEnd();
+	MemberList::iterator mcurr = memberIterBegin();
+	MemberList::iterator mend = memberIterEnd();
 
 	f << " /* Destroy a " << this->name() << " */" << std::endl;
 	f << "{" << std::endl;
@@ -166,12 +166,12 @@ bool Type::unref_func_print(std::ostream& f)
 	return true;
 }
 
-std::map<std::string *, Member<Element> *>::iterator Type::memberIterBegin()
+MemberList::iterator Type::memberIterBegin()
 {
 	return this->members.begin();
 }
 
-std::map<std::string *, Member<Element> *>::iterator Type::memberIterEnd()
+MemberList::iterator Type::memberIterEnd()
 {
 	return this->members.end();
 }
@@ -188,8 +188,8 @@ std::map<std::string *, Function *>::iterator Type::functionIterEnd()
 
 bool Type::genStruct(std::ostream& header)
 {
-	std::map<std::string *, Member<Element> *>::iterator curr = memberIterBegin();
-	std::map<std::string *, Member<Element> *>::iterator end = memberIterEnd();
+	MemberList::iterator curr = memberIterBegin();
+	MemberList::iterator end = memberIterEnd();
 	
 	header << "struct " << this->module()->funcPrefix() << this->name() << "_s {" << std::endl;
 
@@ -219,8 +219,8 @@ bool Type::genFunctionDefs(std::ostream& header, Module *Mod)
 {
 	std::map<std::string *, Function *>::iterator fcurr = functionIterBegin();
 	std::map<std::string *, Function *>::iterator fend = functionIterEnd();
-	std::map<std::string *, Member<Element> *>::iterator mcurr = memberIterBegin();
-	std::map<std::string *, Member<Element> *>::iterator mend = memberIterEnd();
+	MemberList::iterator mcurr = memberIterBegin();
+	MemberList::iterator mend = memberIterEnd();
 
 	// Constructor
 	if(!create_def_print(header)) return false;
@@ -257,8 +257,8 @@ bool Type::genLogic(std::ostream& logic)
 {
 	std::map<std::string *, Function *>::iterator fcurr = functionIterBegin();
 	std::map<std::string *, Function *>::iterator fend = functionIterEnd();
-	std::map<std::string *, Member<Element> *>::iterator mcurr = memberIterBegin();
-	std::map<std::string *, Member<Element> *>::iterator mend = memberIterEnd();
+	MemberList::iterator mcurr = memberIterBegin();
+	MemberList::iterator mend = memberIterEnd();
 
 	// Generate the constructor
 	if(!create_def_print(logic)) return false;
@@ -332,11 +332,26 @@ std::list<std::string *> Type::getFuncIncludes()
 	return retlist;
 }
 
+bool Type::populate_dependencies(std::set<Module *>& deps)
+{
+	std::map<std::string *, Function *>::iterator fcurr;
+	for(fcurr = functionIterBegin(); fcurr != functionIterEnd(); ++fcurr)
+	{
+		if(!fcurr->second->populate_dependencies(deps))
+			return false;
+	}
+	MemberList::iterator mcurr = memberIterBegin();
+	MemberList::iterator mend = memberIterEnd();
+	for(; mcurr != mend; ++mcurr)
+	{
+		deps.insert(mcurr->second->module());
+	}
+	return true;
+}
+
 bool Type::memberAdd(Member<Element> *m, std::string *name)
 {
-	this->members.insert(std::make_pair(name, m));
-	std::string inc = m->include();
-	if(inc != "") this->module()->includeAdd(new std::string(inc));
+	this->members.push_back(std::make_pair(name, m));
 	return true;
 }
 

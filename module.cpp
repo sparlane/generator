@@ -48,15 +48,16 @@ bool Module::fpAdd(std::string *oName, Object *object)
 	return true;
 }
 
-bool Module::generate(std::string *name)
+bool Module::generate(std::string *name, const char *output_dir)
 {
 	std::map<std::string *, Object *>::iterator curr = objectsIterBegin();
 	std::map<std::string *, Object *>::iterator end = objectsIterEnd();
 	std::map<std::string *, Object *>::iterator fp_curr = fpIterBegin();
 	std::map<std::string *, Object *>::iterator fp_end = fpIterEnd();
+	std::set<Module *> dependencies;
 
 	char *path = NULL;
-	int res = asprintf(&path, "output/%s", this->Path->c_str());
+	int res = asprintf(&path, "%s/%s", output_dir, this->Path->c_str());
 	if(res <= 0)
 		gen_error(strerror(errno));
 	res = mkdir(path, 0755);
@@ -64,7 +65,7 @@ bool Module::generate(std::string *name)
 		gen_error(strerror(errno));
 	free(path);
 	path = NULL;
-	res = asprintf(&path, "output/%s/%s", this->Path->c_str(), name->c_str());
+	res = asprintf(&path, "%s/%s/%s", output_dir, this->Path->c_str(), name->c_str());
 	if(res <= 0)
 		gen_error(strerror(errno));
 	res = mkdir(path, 0755);
@@ -72,7 +73,7 @@ bool Module::generate(std::string *name)
 		gen_error(strerror(errno));
 	free(path);
 	path = NULL;
-	res = asprintf(&path, "output/%s/%s/include", this->Path->c_str(), name->c_str());
+	res = asprintf(&path, "%s/%s/%s/include", output_dir, this->Path->c_str(), name->c_str());
 	if(res <= 0)
 		gen_error(strerror(errno));
 	res = mkdir(path, 0755);
@@ -80,7 +81,7 @@ bool Module::generate(std::string *name)
 		gen_error(strerror(errno));
 	free(path);
 	path = NULL;
-	res = asprintf(&path, "output/lb/%s", this->Path->c_str());
+	res = asprintf(&path, "%s/lb/%s", output_dir, this->Path->c_str());
 	if(res <= 0)
 		gen_error(strerror(errno));
 	res = mkdir(path, 0755);
@@ -89,7 +90,7 @@ bool Module::generate(std::string *name)
 	free(path);
 	path = NULL;
 	// generate the header file first
-	res = asprintf(&path, "output/%s/%s/include/%s%s.h", this->Path->c_str(), name->c_str(), this->FilePrefix->c_str(), name->c_str());
+	res = asprintf(&path, "%s/%s/%s/include/%s%s.h", output_dir, this->Path->c_str(), name->c_str(), this->FilePrefix->c_str(), name->c_str());
 	if(res <= 0)
 		gen_error(strerror(errno));
 	
@@ -113,18 +114,21 @@ bool Module::generate(std::string *name)
 	
 	for(curr = objectsIterBegin(); curr != end; ++curr)
 	{
-		std::list<std::string *> list = curr->second->getFuncIncludes();
-		
-		for(std::list<std::string *>::iterator scurr = list.begin(); scurr != list.end(); scurr++)
+		curr->second->populate_dependencies(dependencies);
+	}
+
+	for(std::set<Module *>::iterator iter = dependencies.begin(); iter != dependencies.end(); ++iter)
+	{
+		if((*iter) != NULL && (*iter) != this)
 		{
-			this->includes.push_back(*scurr);
+			char *inc_file = NULL;
+			asprintf(&inc_file, "%s%s.h", (*iter)->filePrefix()->c_str(), (*iter)->name()->c_str());
+			this->includes.insert(std::string(inc_file));
+			free(inc_file);
 		}
 	}
-	
-	this->includes.sort();
-	this->includes.unique();
 
-	for(std::list<std::string *>::iterator I = this->includes.begin(); I != this->includes.end(); I++)
+	for(std::set<std::string>::iterator I = this->includes.begin(); I != this->includes.end(); I++)
 	{
 		header << "#include <" << *I << ">" << std::endl;
 	}
@@ -173,7 +177,7 @@ bool Module::generate(std::string *name)
 	{
 		if(curr->second->haveLogic())
 		{
-			res = asprintf(&path, "output/%s/%s/%s%s_%s.c", this->Path->c_str(), name->c_str(), this->FilePrefix->c_str(), name->c_str(), curr->first->c_str());
+			res = asprintf(&path, "%s/%s/%s/%s%s_%s.c", output_dir, this->Path->c_str(), name->c_str(), this->FilePrefix->c_str(), name->c_str(), curr->first->c_str());
 			if(res <= 0)
 				gen_error(strerror(errno));
 		
@@ -197,7 +201,7 @@ bool Module::generate(std::string *name)
 	{
 		if(curr->second->haveFunctions())
 		{
-			res = asprintf(&path, "output/%s/%s/%s%s_%s_logic.c.tpl", this->Path->c_str(), name->c_str(), this->FilePrefix->c_str(), name->c_str(), curr->first->c_str());
+			res = asprintf(&path, "%s/%s/%s/%s%s_%s_logic.c.tpl", output_dir, this->Path->c_str(), name->c_str(), this->FilePrefix->c_str(), name->c_str(), curr->first->c_str());
 			if(res <= 0)
 				gen_error(strerror(errno));
 		
@@ -214,7 +218,7 @@ bool Module::generate(std::string *name)
 	
 	// lastly generate the luabuild script
 	{
-		res = asprintf(&path, "output/lb/%s/%s.lua", this->Path->c_str(), name->c_str());
+		res = asprintf(&path, "%s/lb/%s/%s.lua", output_dir, this->Path->c_str(), name->c_str());
 		
 		if(res <= 0)
 			gen_error(strerror(errno));
@@ -251,6 +255,16 @@ bool Module::generate(std::string *name)
 		lbout << "\t\ttable.insert(deps, file('" << this->Path << "/"
 			<< name << "/include/" << this->FilePrefix << name << ".h'))"
 			<< std::endl;
+		
+		lbout << std::endl;
+		// depend on other modules that we need/use
+		for(std::set<Module *>::iterator iter = dependencies.begin(); iter != dependencies.end(); ++iter)
+		{
+			if((*iter) != NULL && (*iter) != this)
+			{
+				lbout << "\t\t" << (*iter)->path() << "_" << (*iter)->name() << "_dep(files,cflags,deps,done)" << std::endl;
+			}
+		}
 		lbout << "\tend" << std::endl;
 		
 		lbout << "end" << std::endl;

@@ -19,23 +19,26 @@ bool World::moduleAdd(std::string *name, Module *m)
 	return true;
 }
 
-bool World::generate()
+bool World::generate(const char *output_dir)
 {
 	std::map<std::string *, Module *>::iterator curr = modulesIterBegin();
 	std::map<std::string *, Module *>::iterator end = modulesIterEnd();
 
 	// create the directories we need to make
-	int res = mkdir("output", 0755);
+	int res = mkdir(output_dir, 0755);
 	if(res != 0 && errno != EEXIST)
 		gen_error(strerror(errno));
 	
-	res = mkdir("output/lb", 0755);
+	char *lb_path = NULL;
+	asprintf(&lb_path, "%s/lib", output_dir);
+	res = mkdir(output_dir, 0755);
+	free(lb_path);
 	if(res != 0 && errno != EEXIST)
 		gen_error(strerror(errno));
 
 	for( ; curr != end ; ++curr)
 	{
-		if(!curr->second->generate(curr->first))
+		if(!curr->second->generate(curr->first, output_dir))
 		{
 			std::cerr << "Error generating module: " << curr->first << std::endl;
 			return false;

@@ -3,19 +3,19 @@
 using namespace generator;
 using namespace std;
 
-std::map<std::string *, Member<Element> *>::iterator Function::paramsIterBegin()
+MemberList::iterator Function::paramsIterBegin()
 {
 	return this->parameters.begin();
 }
 
-std::map<std::string *, Member<Element> *>::iterator Function::paramsIterEnd()
+MemberList::iterator Function::paramsIterEnd()
 {
 	return this->parameters.end();
 }
 
 bool Function::paramAdd(std::string *name, Member<Element> *m)
 {
-	this->parameters.insert(std::make_pair(name, m));
+	this->parameters.push_back(std::make_pair(name, m));
 	std::string inc = m->include();
 	if(inc != "") this->myIncludes.push_back(new std::string(inc));
 	return true;
@@ -28,10 +28,20 @@ std::list<std::string *> Function::includes()
 	return this->myIncludes;
 }
 
+bool Function::populate_dependencies(std::set<Module *>& deps)
+{
+	for(MemberList::iterator pcurr = paramsIterBegin(); pcurr != paramsIterEnd(); ++pcurr)
+	{
+		deps.insert(pcurr->second->module());
+	}
+	return this->ReturnType->populate_dependencies(deps);
+}
+
+
 bool Function::genFunctionDef(std::ostream &of, Module *Mod, Type *t, bool tpl, bool type)
 {
-	std::map<std::string *, Member<Element> *>::iterator pcurr = paramsIterBegin();
-	std::map<std::string *, Member<Element> *>::iterator pend = paramsIterEnd();
+	MemberList::iterator pcurr = paramsIterBegin();
+	MemberList::iterator pend = paramsIterEnd();
 
 	this->ReturnType->genType(of);
 
@@ -52,8 +62,8 @@ bool Function::genFunctionDef(std::ostream &of, Module *Mod, Type *t, bool tpl, 
 
 bool Function::genFunctionCall(std::ostream &of, Module *Mod, Type *t, bool tpl, bool type)
 {
-	std::map<std::string *, Member<Element> *>::iterator pcurr = paramsIterBegin();
-	std::map<std::string *, Member<Element> *>::iterator pend = paramsIterEnd();
+	MemberList::iterator pcurr = paramsIterBegin();
+	MemberList::iterator pend = paramsIterEnd();
 
 	of << Mod->funcPrefix() << t->name() << "_" << this->name();
 	if(tpl)

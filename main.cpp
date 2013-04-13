@@ -13,7 +13,7 @@ void gen_error_r(const char *mesg, const char *func, const char *file, int line)
 
 static void print_usage(const char *name)
 {
-	fprintf(stderr, "Usage: %s objectDefinition.lua\n", name);
+	fprintf(stderr, "Usage: %s output/path objectDefinition.lua\n", name);
 	exit(EXIT_FAILURE);
 }
 
@@ -25,7 +25,7 @@ std::ostream& operator<<(std::ostream& os, std::string *str)
 
 int main(int argc, char *argv[])
 {
-	if(argc <= 1)
+	if(argc <= 2)
 	{
 		print_usage(argv[0]);
 	}
@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 	luaL_openlibs(state);
 	luaopen_process(state);
 
-	for(int i = 1; i < argc; i++)
+	for(int i = 2; i < argc; i++)
 	{
 		int res = luaL_dofile(state, argv[i]);
 	
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 	}
 #endif	
 		
-	if(!WORLD->generate())
+	if(!WORLD->generate(argv[1]))
 		gen_error("generating world");
 
 	return EXIT_SUCCESS;
