@@ -65,6 +65,14 @@ bool Module::generate(std::string *name, const char *output_dir)
 		gen_error(strerror(errno));
 	free(path);
 	path = NULL;
+	res = asprintf(&path, "%s/lb", output_dir);
+	if(res <= 0)
+		gen_error(strerror(errno));
+	res = mkdir(path, 0755);
+	if(res != 0 && errno != EEXIST)
+		gen_error(strerror(errno));
+	free(path);
+	path = NULL;
 	res = asprintf(&path, "%s/%s/%s", output_dir, this->Path->c_str(), name->c_str());
 	if(res <= 0)
 		gen_error(strerror(errno));
