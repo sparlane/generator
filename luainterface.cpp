@@ -63,6 +63,20 @@ int li_function_paramAdd(lua_State *L)
 	return 1;
 }
 
+// bool valueAdd(Function, Member)
+int li_enum_valueAdd(lua_State *L)
+{
+	CHECK_COUNT_MIN("valueAdd",2)
+	CHECK_COUNT_MAX("valueAdd",3)
+	CHECK_ARGUMENT_TYPE("valueAdd",1,Enum,e)
+	CHECK_ARGUMENT("valueAdd",2,string)
+	CHECK_ARGUMENT_IF_GIVEN("valueAdd",3,number)
+
+	lua_pushboolean(L, e->valueAdd(GET_ARGUMENT_IF_GIVEN_STR(2), GET_ARGUMENT_IF_GIVEN(3,number,0)));
+	return 1;
+}
+
+
 // function * functionCreate(Type, name, Member)
 int li_type_functionCreate(lua_State *L)
 {
@@ -187,6 +201,29 @@ int li_module_function_pointer_create(lua_State *L)
 	
 	CREATE_TABLE(L, fp);
 	fp->lua_table(L);
+		
+	// now we just return the table :)
+	return 1;
+}
+
+// Enum *e = Module:EnumCreate(name)
+int li_module_enum_create(lua_State *L)
+{
+	CHECK_COUNT("enumCreate",2)
+	CHECK_ARGUMENT("enumCreate",2,string)
+	
+	// check we have a module, then convert it to a Module
+	CHECK_ARGUMENT_TYPE("typeCreate",1,Module,m)
+
+	// now create the Enum
+	Enum *e = new Enum(m, new std::string(lua_tostring(L, 2)));
+	if(e == NULL) gen_error("enum could not be created");
+	
+	// now add this enum to the module
+	m->objectAdd(new std::string(luaL_checkstring(L, 2)), e);
+	
+	CREATE_TABLE(L, e);
+	e->lua_table(L);
 		
 	// now we just return the table :)
 	return 1;

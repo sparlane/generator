@@ -64,7 +64,9 @@ extern "C" {
 	int li_type_memberAdd(lua_State *L);
 	int li_type_functionCreate(lua_State *L);
 	int li_function_paramAdd(lua_State *L);
+	int li_enum_valueAdd(lua_State *L);
 	int li_module_type_create(lua_State *L);
+	int li_module_enum_create(lua_State *L);
 	int li_module_function_pointer_create(lua_State *L);
 	int li_module_queue_create(lua_State *L);
 	int li_module_bst_create(lua_State *L);
@@ -194,6 +196,7 @@ namespace generator {
 			bool includeAdd(std::string *inc) { this->includes.insert(*inc); return true; };
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Module)
 							LUA_ADD_TABLE_FUNC(L,"newType",li_module_type_create)
+							LUA_ADD_TABLE_FUNC(L,"newEnum",li_module_enum_create)
 							LUA_ADD_TABLE_FUNC(L,"newFunctionPointer",li_module_function_pointer_create)
 							LUA_ADD_TABLE_FUNC(L,"newQueue",li_module_queue_create)
 							LUA_ADD_TABLE_FUNC(L,"newBST",li_module_bst_create)
@@ -405,6 +408,50 @@ namespace generator {
 			virtual std::string include() { return Of->include(); };
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Array)
 						super::lua_table_r(L); }
+			virtual void lua_table(lua_State *L) { lua_table_r(L); };
+	};
+
+	
+	typedef std::list< std::pair< std::string *, int > > string_int_set;
+
+	class Enum : public Object {
+		private:
+			typedef Object super;
+			std::string *EnumName;
+			string_int_set members;
+		public:
+			explicit Enum(Module *mod, std::string *EnumName) : Object(mod, EnumName, true, true), EnumName(EnumName) {};
+
+			virtual bool valueAdd(std::string *s, int v) { this->members.push_back(std::make_pair(s,v)); return true; };
+
+			virtual bool genType(std::ostream& header);
+			virtual bool genStruct(std::ostream& header, std::string name);
+			virtual bool genSetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Object *t) { return true; };
+			virtual bool genGetFunctionDef(std::ostream& header, std::string *name, Module *Mod, Object *t) { return true; };
+			//virtual bool genFunctionDefs(std::ostream& header, std::string *, Module *Mod, Object *t) { return true; };
+			virtual bool genLogic(std::ostream& logic, std::string *name, Module *Mod, Object *t) { return true; };
+			virtual bool genDestruct(std::ostream& logic, std::string *name) { return true; };
+			virtual std::string initValue() { return "-1"; };
+			virtual std::string include() { return ""; };
+			
+			virtual bool genTemplate(std::ostream&) { return true; };
+			virtual bool populate_dependencies(std::set<generator::Module*>&) { return true; };
+			virtual bool create_def_print(std::ostream&) { return true; };
+		 	virtual bool func_def_print(std::ostream&, std::string) { return true; };
+		 	virtual bool create_func_print(std::ostream&) { return true; };
+		 	virtual bool destroy_func_print(std::ostream&) { return true; };
+		 	virtual bool ref_func_print(std::ostream&) { return true; };
+		 	virtual bool unref_func_print(std::ostream&) { return true; };
+		 	virtual bool genStruct(std::ostream&) { return true; };
+		 	virtual bool genTypeDef(std::ostream&);
+		 	virtual bool genFunctionDefs(std::ostream&, generator::Module*) { return true; };
+		 	virtual bool genLogic(std::ostream&) { return true; };
+		 	virtual bool haveLogic() { return false; };
+
+			
+			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,Enum)
+								LUA_ADD_TABLE_FUNC(L, "valueAdd", li_enum_valueAdd);
+								super::lua_table_r(L); }
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 

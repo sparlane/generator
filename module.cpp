@@ -216,6 +216,39 @@ bool Module::generate(std::string *name, const char *output_dir)
 		}
 	}
 	
+	// Generate some makefile data
+	{
+		res = asprintf(&path, "%s/%s/%s/Makefile.%s", output_dir, this->Path->c_str(), name->c_str(), name->c_str());
+		
+		if(res <= 0)
+			gen_error(strerror(errno));
+	
+		std::ofstream mkout(path);
+
+		// for each file we produce, add it
+		for(curr = objectsIterBegin() ; curr != end ; ++curr)
+		{
+			if(curr->second->haveLogic())
+			{
+				mkout << "SRC_C+= " << this->Path << "/" << name << "/" << this->FilePrefix << name << "_" << curr->first << ".c" << std::endl;
+			}
+		}
+
+		// add our path to cflags
+		mkout << "INCLUDES+= -I" << this->Path << "/" << name << "/include/" << std::endl;
+		mkout << "INCLUDES+= -I" << this->Path << "/" << name << std::endl;
+
+		// add our path
+		mkout << "PATHS+= " << this->Path << "/" << name << std::endl;
+
+		mkout.flush();
+
+		free(path);
+		path = NULL;
+
+
+	}
+
 	// lastly generate the luabuild script
 	{
 		res = asprintf(&path, "%s/lb/%s/%s.lua", output_dir, this->Path->c_str(), name->c_str());
