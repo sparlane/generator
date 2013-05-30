@@ -1,62 +1,10 @@
-When no other license is specified, the following license applies.
+Copyright 2013 ScottNZ LTD. All rights reserved.
 
-=== BEGIN LICENSE ===
-0. DEFINITIONS:
-	'You' - The organisation which owns the machine this software runs on.
-		OR The organisation which compensates the user of this software.
-		OR when no organisation is in involved: The natural person using, modifying, distributing, or otherwise having a relationship with this software.
-	'Organisation' - Any legal Person, that is not a natural person.
-	'Software' - This product, in any form, either source code or compiled.
-	'Use' - Run, Modify.
-	'Compensate' - Reimburse for time, either by means of employement, or by means of contracting.
-	'Distribute' - To give this software to another person, natural or otherwise.
-	'Modify' - Change this softwares sources code.
-	'Source Code' - The machine readable code from which this software is made.
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-0. LICENSE:
-	0.0: THIS LICENSE IS GRANTED NON-EXCLUSIVELY, WORLD-WIDE, ROYALITY FREE.
+    1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
 
-1. USE:
-	1.1 - Use of this software for any purpose is permitted.
-	1.2 - Modifying this software for your usage is permitted.
+    2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 
-2. DISTRIBUTION:
-	2.0 - Distribution of this software modified or otherwise is permitted provided:
-	2.1 - This license continues to apply, AS IS, to all who receive this software.
-	2.2 - You supply the source code to the person you distribute it to, there is no exclusion on distributing binaries in addition to source code.
-	2.3 - If you modify this software you must clearly identify that it is a modified version by:
-		2.3.1 - Placing your name between the name of the package and the version number in the name of the compressed file AND
-		2.3.2 - Adding CHANGED: comments into the top of each file you have changed. Recording what you changed, along with your name and the date.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-3. LINKING:
-	3.1 - Linking to other files with different licenses is permitted, provided those licenses allow it.
-
-4. SCOPE:
-	4.0 - This license applies to all files to which it is applied, as a whole. This means:
-	4.1 - When moving a function from a covered file to another file, that file becomes covered by this license AND
-	4.2 - When adding a function into a covered file it becomes covered by this license.
-
-5. RESTRICTIONS:
-	5.1 - THIS SOFTWARE IS PROVIDED AS IS. THERE IS NO WARRANTY EXPRESSED OR IMPLIED AND NO LIABILITY OF ANY KIND.
-	5.2 - YOU ARE SOLELY LIABLE FOR CHECKING IT DOES WHAT IT IS REPRESENTED TO DO BEFORE USING IT.
-	5.3 - IF YOU CAN NOT STATISFY 4.1 AND 4.2 DO NOT REDISTRIBUTE THIS SOFTWARE OR DO NOT MODIFY IT.
-	5.4 - IF YOU BRING SUIT AGAINST ANY DEVELOPER, MAINTAINER, DISTRIBUTER, USER OR ANY OTHER PERSON
-		TO WHOM THERE IS A RELATIONSHIP TO THIS SOFTWARE, IN REGARDS TO THEIR RELATIONSHIP TO THIS PRODUCT
-		A LICENSING FEE FOR THIS PRODUCT BECOMES DUE TO THE PERSON WHOM YOU BROUGHT SUIT AGAINST AND
-		IS EQUAL TO THE TOTAL VALUE OF SAID SUIT PLUS ANY LEGAL EXPENSES THEY INCUR
-	5.5 - IF ANY SECTION OF THIS LICENSE IS HELD UNENFORCABLE, THE REMAINING SECTIONS REMAIN IN FULL EFFECT,
-		THE UNENFORCABLE SECTION SHALL BE SUBSTITUTED WITH THE MOST ENFORCABLE SECTION WITH THE SAME INTENT,
-		THE INTENT IS ALWAYS IN FAVOUR OF:
-		5.5.1 THE ORIGINAL DEVELOPER(S), THEN 
-		5.5.2 ANY CONTRIBUTOR(S), THEN 
-		5.5.3 ANY MAINTAINER(S), THEN 
-		5.5.4 ANY DISTRIBUTOR(S), THEN
-		5.5.5 ANY USER(S).
-
-A. RECOMMENDATIONS:
-	A.0: This section describles recommended actions of the person using this software, it is not enforcable, and you do not have to follow it.
-	A.1: File bug reports with the official software bug tracker.
-	A.2: If you fix something for yourself, share the fix with official software package.
-	A.3: If you make a profit from this software, consider making a donation (fisical or otherwise) to to the official software project.
-
-=== END LICENSE ===
