@@ -47,6 +47,20 @@ bool Type::print_connect(std::ostream& f)
 	return true;	
 }
 
+bool Type::genDestruct(std::ostream& logic, std::string *name)
+{
+	logic << "\tif(res && o->" << name << " != NULL)" << std::endl;
+	logic << "\t{" << std::endl;
+	logic << "\t\tif(";
+	this->print_disconnect(logic);
+	logic << "(o->" << name << "))" << std::endl;
+	logic << "\t\t{" << std::endl;
+	logic << "\t\t\to->" << name << " = NULL;" << std::endl;
+	logic << "\t\t}" << std::endl;
+	logic << "\t}" << std::endl;
+	return true;
+}
+
 bool Type::create_func_print(std::ostream& f)
 {
 	MemberList::iterator mcurr = memberIterBegin();

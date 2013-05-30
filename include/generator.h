@@ -273,6 +273,7 @@ namespace generator {
 			virtual bool genStruct(std::ostream& header, std::string name);
 			virtual bool genStruct(std::ostream& header);
 			virtual bool genFunctionDefs(std::ostream& header, Module *Mod);
+			virtual bool genDestruct(std::ostream& logic, std::string *name);
 			virtual bool haveFunctions();
 			virtual bool haveLogic() { return true; };
 			virtual bool genLogic(std::ostream& logic);
