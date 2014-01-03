@@ -193,6 +193,8 @@ bool Module::generate(std::string *name, const char *output_dir)
 			free(path);
 			path = NULL;
 		
+			WORLD->print_logic_header(logic);
+
 			logic << "#include <" << this->FilePrefix << name << ".h>" << std::endl;
 		
 			if(!curr->second->genLogic(logic))

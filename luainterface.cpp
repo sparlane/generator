@@ -360,6 +360,25 @@ int li_module_create(lua_State *L)
 	return 1;
 }
 
+static int lua_req_func;
+
+int li_require_intercept(lua_State *L)
+{
+	if(lua_gettop(L) != 1) gen_error("require() requires exactly 1 argument");
+
+	// register the file in the world
+	WORLD->fileAdd(new std::string(luaL_checkstring(L, 1)));
+	
+	// now we just let the normal lua require take over
+	// the function to call ..
+	lua_rawgeti(L, LUA_REGISTRYINDEX, lua_req_func);
+	// push the parameter
+	lua_pushstring(L, luaL_checkstring(L, 1));
+	// call it
+	lua_call(L, 1, LUA_MULTRET);
+	return lua_gettop(L) - 1;
+}
+
 void generator::luaopen_process(lua_State *state)
 {
 	lua_register(state, "moduleCreate", li_module_create);
@@ -370,4 +389,10 @@ void generator::luaopen_process(lua_State *state)
 	lua_register(state, "newPointer", li_pointer_create);
 	// Array * = newArray(Member, name, init, input)
 	lua_register(state, "newArray", li_array_create);
+	
+	// intercept require
+	lua_getglobal(state, "require");
+	lua_req_func = luaL_ref(state, LUA_REGISTRYINDEX);
+	
+	lua_register(state, "require", li_require_intercept);
 }

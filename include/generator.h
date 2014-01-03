@@ -599,13 +599,18 @@ namespace generator {
 			std::map<std::string *, Module *> *Modules;
 			std::map<std::string *, Module *>::iterator modulesIterBegin();
 			std::map<std::string *, Module *>::iterator modulesIterEnd();
+			std::list<std::string *> *Files;
+			std::list<std::string *>::iterator filesIterBegin();
+			std::list<std::string *>::iterator filesIterEnd();
 		public:
-			explicit World() { Modules = new std::map<std::string *, Module *>; };
+			explicit World() { Modules = new std::map<std::string *, Module *>; Files = new std::list<std::string *>; };
 			bool moduleAdd(std::string *modName, Module *mod);
 			Module *moduleFind(std::string *modName);
+			bool fileAdd(std::string *fName) { this->Files->push_back(fName); return true; };
 			bool objectAdd(std::string *modName, std::string *objName, Type *object);
 			bool objectFind(std::string *objName);
-			bool generate(const char *output_dir);			
+			bool generate(const char *output_dir);
+			bool print_logic_header(std::ofstream &logic);		
 	};
 	
 	extern World *WORLD;

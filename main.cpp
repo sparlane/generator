@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
 	for(int i = 2; i < argc; i++)
 	{
 		int res = luaL_dofile(state, argv[i]);
+		WORLD->fileAdd(new std::string(argv[i]));
 	
 		if(res != 0)
 		{
