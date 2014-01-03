@@ -188,6 +188,9 @@ bool Tree::genStruct(std::ostream& header)
 
 bool Tree::genFunctionDefs(std::ostream& header, Module *Mod)
 {
+	std::map<std::string *, Function *>::iterator fcurr = functionIterBegin();
+	std::map<std::string *, Function *>::iterator fend = functionIterEnd();
+
 	// Constructor
 	if(!create_def_print(header)) return false;
 	header << " __attribute__((__warn_unused_result__));" << std::endl;
@@ -207,6 +210,11 @@ bool Tree::genFunctionDefs(std::ostream& header, Module *Mod)
 	header << ";" << std::endl;
 	if(!this->genRemoveFunctionDef(header)) return false;
 	header << ";" << std::endl;
+	
+	for( ; fcurr != fend; ++fcurr)
+	{
+		if(!fcurr->second->genFunctionDefs(header, this->module(), this)) return false;	
+	}
 	
 	header << std::endl;
 	return true;

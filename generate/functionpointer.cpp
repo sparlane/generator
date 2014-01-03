@@ -2,19 +2,19 @@
 
 using namespace generator;
 
-std::map<std::string *, Element *>::iterator FunctionPointer::paramsIterBegin()
+ElementList::iterator FunctionPointer::paramsIterBegin()
 {
 	return this->parameters.begin();
 }
 
-std::map<std::string *, Element *>::iterator FunctionPointer::paramsIterEnd()
+ElementList::iterator FunctionPointer::paramsIterEnd()
 {
 	return this->parameters.end();
 }
 
 bool FunctionPointer::memberAdd(Element *m, std::string *name)
 {
-	this->parameters.insert(std::make_pair(name, m));
+	this->parameters.push_back(std::make_pair(name, m));
 	return true;
 }
 
@@ -27,8 +27,8 @@ bool FunctionPointer::genType(std::ostream& header)
 
 bool FunctionPointer::genTypeDef(std::ostream& header)
 {
-	std::map<std::string *, Element *>::iterator pcurr = paramsIterBegin();
-	std::map<std::string *, Element *>::iterator pend = paramsIterEnd();
+	ElementList::iterator pcurr = paramsIterBegin();
+	ElementList::iterator pend = paramsIterEnd();
 
 	header << "typedef ";
 	this->ReturnType->genType(header);

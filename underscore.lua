@@ -1,14 +1,20 @@
 char = newSystemType('char')
+cchar = newSystemType('const char')
 uchar = newSystemType('unsigned char')
 int = newSystemType('int')
 size = newSystemType('size_t')
 uint8 = newSystemType('uint8_t')
+uint16 = newSystemType('uint16_t')
 uint32 = newSystemType('uint32_t')
 uint64 = newSystemType('uint64_t')
 bool = newSystemType('bool')
 
 pchar = newPointer(char, 'free')
+pcchar = newPointer(cchar, 'free')
+puchar = newPointer(uchar, 'free')
 pvoid = newPointer(newSystemType('void'),'free')
+sockaddr = newPointer(newSystemType('struct sockaddr'),'free')
+time = newSystemType('time_t')
 
 require 'us/common'
 require 'us/thread'
@@ -19,6 +25,7 @@ require 'us/event'
 require 'us/encryption'
 require 'us/delay'
 require 'us/network'
+require 'us/base/_core'
 
 m = moduleCreate('scott', 'lib', 'us_', 'us_')
 t = m:newType('test')

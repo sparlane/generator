@@ -13,12 +13,25 @@ event:memberAdd(pvoid,'priv')
 event:memberAdd(int,'event')
 event:memberAdd(event_set,'es')
 
-event_set:memberAdd(mev:newBST(event,'event_set_bst',true),'all',true,false)
-event_set:memberAdd(bool,'updated',true,false)
+es_bst = mev:newBST(event,'event_set_bst',true)
+
+event_set:memberAdd(es_bst,'all',true,false, 'us_event_set_bst_create()')
+event_set:memberAdd(bool,'updated',false)
 event_set:memberAdd(thread,'ewatcher',true,false)
 event_set:memberAdd(jq,'jq',true,true)
+
+event_occured:paramAdd(event, 'e')
+event_invalid:paramAdd(event, 'e')
 
 es_start = event_set:functionCreate('start',bool)
 
 es_add = event_set:functionCreate('add',bool)
 es_add:paramAdd(event,'e')
+
+es_bst_fe_cb = mev:newFunctionPointer('bst_foreach_cb',bool)
+es_bst_fe_cb:paramAdd(event, 'e')
+es_bst_fe_cb:paramAdd(pvoid, 'priv')
+
+es_bst_foreach = es_bst:functionCreate('foreach', bool)
+es_bst_foreach:paramAdd(es_bst_fe_cb,'cb')
+es_bst_foreach:paramAdd(pvoid,'priv')

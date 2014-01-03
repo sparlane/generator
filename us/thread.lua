@@ -10,7 +10,6 @@ thread:memberAdd(newSystemType('void *'),'priv',true,true)
 thread:memberAdd(bool,'started',true,false,'false')
 
 thread_start = thread:functionCreate('start',bool)
-thread_enter = thread:functionCreate('enter',bool)
 
 thread_fp = tm:newFunctionPointer('thread_func',bool)
 thread_fp:paramAdd(thread,'t')

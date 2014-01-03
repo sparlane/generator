@@ -2,12 +2,63 @@
 
 using namespace generator;
 
+bool BST::destroy_func_print(std::ostream& f)
+{
+	f << " /* Destroy a " << this->name() << " */" << std::endl;
+	f << "{" << std::endl;
+	f << "\tif(o == NULL) return false;" << std::endl;
+	f << std::endl;
+	
+	f << "\tbool res = true;" << std::endl;
+	f << std::endl;
+
+	f << "\t" << this->module()->funcPrefix() << this->name() << "_destroy_r(o->root);" << std::endl;
+	f << std::endl;
+
+	if(noref)
+	{
+		if(!lock_code_print(f, false)) return false;
+	}
+
+	if(!unlock_code_print(f)) return false;
+	if(!destroy_lock_code_print(f)) return false;
+	
+	f << "\tfree(o);" << std::endl;
+	f << "\treturn res;" << std::endl;
+	f << "}" << std::endl;
+	f << std::endl;
+	return true;
+}
+
 bool BST::genLogic(std::ostream& logic)
 {
+	std::map<std::string *, Function *>::iterator fcurr = functionIterBegin();
+	std::map<std::string *, Function *>::iterator fend = functionIterEnd();
+
 	// Generate the constructor
 	if(!create_def_print(logic)) return false;
 	if(!create_func_print(logic)) return false;
 	
+	logic << "static void " << this->module()->funcPrefix() << this->name() << "_destroy_r(";
+	this->genNodeStruct(logic, "node");
+	logic << ")" << std::endl;
+	logic << "{" << std::endl;
+	logic << "\tif(node == NULL) return;" << std::endl;
+	logic << "\t" << this->module()->funcPrefix() << this->name() << "_destroy_r(node->left);" << std::endl;
+	logic << "\t" << this->module()->funcPrefix() << this->name() << "_destroy_r(node->right);" << std::endl;
+	logic << "\tif(node->data != NULL)" << std::endl;
+	logic << "\t{" << std::endl;
+	if(this->of()->needs_disconnecting())
+	{
+		logic << "\t\tif(!";
+		this->of()->print_disconnect(logic);
+		logic << "(node->data)) {}" << std::endl;
+	}
+	logic << "\t}" << std::endl;
+	logic << "\tfree(node);" << std::endl;
+	logic << "}" << std::endl;
+	logic << std::endl;
+
 	// Generate the destructor
 	if(!nolock && !noref)
 		logic << "static ";
@@ -307,6 +358,11 @@ bool BST::genLogic(std::ostream& logic)
 
 	logic << "}" << std::endl;
 	logic << std::endl;
+	
+	for( ; fcurr != fend; ++fcurr)
+	{
+		if(!fcurr->second->genLogic(logic, this->module(), this)) return false;	
+	}
 
 
 	return true;
@@ -314,7 +370,7 @@ bool BST::genLogic(std::ostream& logic)
 
 bool BST::genTemplate(std::ostream& templ)
 {
-	if(this->haveFunctions())
+	if(this->ownLogic())
 	{
 		templ << "int " << this->module()->funcPrefix() << this->name() << "_compare_s(";
 		this->of()->genStruct(templ, "first");
@@ -328,6 +384,14 @@ bool BST::genTemplate(std::ostream& templ)
 		templ << "\t//Return a postive value if first comes after second" << std::endl;
 		templ << "\treturn res;" << std::endl;
 		templ << "}" << std::endl;
+	}
+	
+	std::map<std::string *, Function *>::iterator fcurr = functionIterBegin();
+	std::map<std::string *, Function *>::iterator fend = functionIterEnd();
+
+	for( ; fcurr != fend; ++fcurr)
+	{
+		if(!fcurr->second->genTemplate(templ, this->module(), this)) return false;	
 	}
 	return true;
 }

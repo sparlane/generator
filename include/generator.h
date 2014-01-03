@@ -164,7 +164,7 @@ namespace generator {
 	};
 	
 	typedef std::list< std::pair<std::string *, Member<Element> *> > MemberList;
-
+	typedef std::list< std::pair<std::string *, Element *> > ElementList;
 
 	class Module {
 		private:
@@ -254,14 +254,15 @@ namespace generator {
 			MemberList::iterator memberIterBegin();
 			MemberList::iterator memberIterEnd();
 			std::map<std::string *, Function *> functions;
-			std::map<std::string *, Function *>::iterator functionIterBegin();
-			std::map<std::string *, Function *>::iterator functionIterEnd();
 			virtual bool create_def_print(std::ostream& f);
 			virtual bool func_def_print(std::ostream& f, std::string fname);
 			virtual bool create_func_print(std::ostream& f);		
 			virtual bool destroy_func_print(std::ostream& f);
 			virtual bool ref_func_print(std::ostream& f);
 			virtual bool unref_func_print(std::ostream& f);
+		protected:
+			std::map<std::string *, Function *>::iterator functionIterBegin();
+			std::map<std::string *, Function *>::iterator functionIterEnd();
 		public:
 			explicit Type(Module *mod, std::string *objName, bool nl = false, bool nr = false) : Object(mod, objName, nl, nr) {};
 			bool memberAdd(Member<Element> *m, std::string *name);
@@ -292,9 +293,9 @@ namespace generator {
 	class FunctionPointer : public Object {
 		private:
 			typedef Object super;
-			std::map<std::string *, Element *> parameters;
-			std::map<std::string *, Element *>::iterator paramsIterBegin();
-			std::map<std::string *, Element *>::iterator paramsIterEnd();
+			ElementList parameters;
+			ElementList::iterator paramsIterBegin();
+			ElementList::iterator paramsIterEnd();
 			Element *ReturnType;
 			virtual bool create_def_print(std::ostream& f);
 			virtual bool func_def_print(std::ostream& f, std::string fname);
@@ -487,9 +488,9 @@ namespace generator {
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};
 	
-	class Tree : public Object {
+	class Tree : public Type {
 		private:
-			typedef Object super;
+			typedef Type super;
 			bool ownfunc;
 			Element *Of;
 		protected:
@@ -500,8 +501,9 @@ namespace generator {
 			virtual bool ref_func_print(std::ostream& f);
 			virtual bool unref_func_print(std::ostream& f);
 		public:
-			explicit Tree(Element *of, Module *mod, std::string *objName, bool func) : Object(mod, objName, false, false), ownfunc(func), Of(of) {};
-			virtual bool haveFunctions() { return ownfunc; };
+			explicit Tree(Element *of, Module *mod, std::string *objName, bool func) : Type(mod, objName, false, false), ownfunc(func), Of(of) {};
+			virtual bool ownLogic() { return ownfunc; };
+			virtual bool haveFunctions() { return this->ownLogic() || this->functionIterBegin() != this->functionIterEnd(); };
 			virtual Element *of() { return this->Of; };
 			
 			virtual bool genStruct(std::ostream& header, std::string name);
@@ -526,6 +528,8 @@ namespace generator {
 	class BST : public Tree {
 		private:
 			typedef Tree super;
+		protected:
+			virtual bool destroy_func_print(std::ostream& f);
 		public:
 			explicit BST(Element *of, Module *mod, std::string *objName, bool func) : Tree(of, mod, objName, func) {};
 			
@@ -536,6 +540,7 @@ namespace generator {
 			// BST specific
 			
 			static void lua_table_r(lua_State *L) { LUA_SET_TABLE_TYPE(L,BST)
+						LUA_ADD_TABLE_FUNC(L, "functionCreate", li_type_functionCreate);
 						super::lua_table_r(L); }
 			virtual void lua_table(lua_State *L) { lua_table_r(L); };
 	};

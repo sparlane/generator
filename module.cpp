@@ -266,50 +266,65 @@ bool Module::generate(std::string *name, const char *output_dir)
 	
 		std::ofstream lbout(path);
 	
-		lbout << "function " << this->Path << "_" << name << "_dep(files,cflags,deps,done)" << std::endl;
-
-		lbout << "\tif done." << this->Path << "_" << name << " == nil then" << std::endl;
-		lbout << "\t\tdone['" << this->Path << "_" << name << "'] = true" << std::endl;
-		lbout << "\t\t" << std::endl;
+		lbout << "function " << this->Path << "_" << name << "_sources()" << std::endl;
+		lbout << "\tfiles = {}" << std::endl;
 		// for each other module we use, depend on it
 		// for each file we produce, add it
 		for(curr = objectsIterBegin() ; curr != end ; ++curr)
 		{
 			if(curr->second->haveLogic())
 			{
-				lbout << "\t\ttable.insert(files, file('" << this->Path 
-					<< "/" << name << "/" << this->FilePrefix << name 
+				lbout << "\ttable.insert(files, file('" << this->Path 
+					<< "/" << name << "','" << this->FilePrefix << name 
 					<< "_" << curr->first << ".c'))" << std::endl;
 			}
 		}
+		lbout << "\treturn files" << std::endl;
+		lbout << "end" << std::endl;
+		lbout << std::endl;
+
 		// add the logic files (if needed)
+		/*
 		for(curr = objectsIterBegin() ; curr != end ; ++curr)
 		{
 			if(curr->second->haveFunctions())
 			{
 				lbout << "\t\ttable.insert(deps, file('" << this->Path 
-					<< "/" << name << "/" << this->FilePrefix << name 
+					<< "/" << name << "','" << this->FilePrefix << name 
 					<< "_" << curr->first << "_logic.c'))" << std::endl;
 			}
-		}		
-		// add our header to the dependencies list
-		lbout << "\t\ttable.insert(deps, file('" << this->Path << "/"
-			<< name << "/include/" << this->FilePrefix << name << ".h'))"
+		} */		
+		// add our header to the file list
+		lbout << "function " << this->Path << "_" << name << "_headers()" << std::endl;
+		lbout << "\tfiles = {}" << std::endl;
+		lbout << "\ttable.insert(files, file('" << this->Path << "/"
+			<< name << "/include','" << this->FilePrefix << name << ".h'))"
 			<< std::endl;
-		
+		lbout << "\treturn files" << std::endl;
+		lbout << "end" << std::endl;
 		lbout << std::endl;
+
+		lbout << "function " << this->Path << "_" << name << "_cflags_populate(flags)" << std::endl;
+		lbout << "\ttable.insert(flags, '-I'..sourcedir..'/" << this->path() << "/" << this->name() << "/include')" << std::endl;
 		// depend on other modules that we need/use
 		for(std::set<Module *>::iterator iter = dependencies.begin(); iter != dependencies.end(); ++iter)
 		{
 			if((*iter) != NULL && (*iter) != this)
 			{
-				lbout << "\t\t" << (*iter)->path() << "_" << (*iter)->name() << "_dep(files,cflags,deps,done)" << std::endl;
+				lbout << "\t" << (*iter)->path() << "_" << (*iter)->name() << "_cflags_populate(flags)" << std::endl;
 			}
 		}
-		lbout << "\tend" << std::endl;
-		
+		lbout << "\treturn flags" << std::endl;
 		lbout << "end" << std::endl;
 
+
+		lbout << "function " << this->Path << "_" << name << "_cflags()" << std::endl;
+		lbout << "\tflags = { '-I'..sourcedir..'/" << this->path() << "/" << this->name() << "' }" << std::endl;
+		lbout << "\t" << this->Path << "_" << name << "_cflags_populate(flags)" << std::endl;
+		lbout << "\treturn flags" << std::endl;
+		lbout << "end" << std::endl;
+
+		
 		lbout.flush();
 		
 		free(path);

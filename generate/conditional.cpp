@@ -20,7 +20,7 @@ bool Conditional::genStruct(std::ostream& header)
 
 	header << "\tbool destroyed;" << std::endl;
 	header << "\tpthread_mutex_t *lock;" << std::endl;
-	header << "\tpthread_cond_t *cond;" << std::endl;
+	header << "\tpthread_cond_t cond;" << std::endl;
 	
 	header << "};" << std::endl << std::endl;
 
@@ -82,13 +82,76 @@ bool Conditional::genFunctionDefs(std::ostream& header, Module *Mod)
 
 bool Conditional::genLogic(std::ostream& logic)
 {
+	logic << "#include <errno.h>" << std::endl;
+
+	create_def_print(logic);
+	logic << "{" << std::endl;
+	logic << "\t";
+	this->genStruct(logic, "o");
+	logic << " = calloc(1, sizeof(struct ";
+	this->genType(logic);
+	logic << "_s));" << std::endl;
+	logic << "\tif(o == NULL) goto ERROR_EARLY;" << std::endl;
+	logic << std::endl;
+	logic << "\to->destroyed = false;" << std::endl;
+	
+	logic << "/* create the lock for this conditional */" << std::endl;
+	logic << "\to->lock = calloc(1, sizeof(pthread_mutex_t));" << std::endl;
+	logic << "\tif(o->lock == NULL) goto ERROR_LOCK_CREATE;" << std::endl;
+	logic << "\tpthread_mutexattr_t mutex_attr;\n\tif(pthread_mutexattr_init(&mutex_attr) != 0) goto ERROR_LOCK;" << std::endl;
+	logic << "\tif(pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK) != 0) goto ERROR_LOCK;" << std::endl;
+	logic << "\tif(pthread_mutex_init(o->lock, &mutex_attr) != 0) goto ERROR_LOCK;\n" << std::endl;
+	
+	
+	logic << "/* create the condition */" << std::endl;
+	logic << "\tpthread_cond_init(&o->cond, NULL);" << std::endl;
+	
+	logic << "\treturn o;" << std::endl;
+	logic << "ERROR_LOCK:" << std::endl;
+	logic << "\tfree(o->lock);" << std::endl; 
+	logic << "ERROR_LOCK_CREATE:" << std::endl;
+	logic << "\tfree(o);" << std::endl; 
+	logic << "ERROR_EARLY:" << std::endl;
+	logic << "\treturn NULL;" << std::endl;
+	logic << "}" << std::endl;
+	logic << std::endl;
+
+	func_def_print(logic, "destroy");
+	logic << std::endl;
+	logic << "{" << std::endl;
+	logic << "\tif(o == NULL) return false;" << std::endl;
+	logic << std::endl;
+	logic << "\tif(o->lock == NULL) return false;" << std::endl;
+	logic << "\tif(!" << this->module()->funcPrefix() << this->name() << "_lock(o)) return false;" << std::endl;
+	logic << "\to->destroyed = true;" << std::endl;
+	logic << "\t/* first shake all the threads waiting on this condition */" << std::endl;
+	logic << "\t"<< this->module()->funcPrefix() << this->name() << "_signal(o, true);" << std::endl;
+	logic << "\t" << this->module()->funcPrefix() << this->name() << "_unlock(o);" << std::endl;
+	logic << "\tint eval = pthread_cond_destroy(&o->cond);" << std::endl;
+	logic << "\tif(eval != 0)" << std::endl;
+	logic << "\t{" << std::endl;
+	logic << "\t\tif(eval == EBUSY) return false;" << std::endl;
+	logic << "\t}" << std::endl;
+	
+	// grab and un-grab the lock, to make sure every thread has been shaken
+	logic << "\tif(!" << this->module()->funcPrefix() << this->name() << "_lock(o)) return false;" << std::endl;
+	logic << "\t" << this->module()->funcPrefix() << this->name() << "_unlock(o);" << std::endl;
+	// attempt to destroy the lock
+	logic << "\tpthread_mutex_destroy(o->lock);" << std::endl;
+
+	logic << "\tfree(o->lock);" << std::endl;
+	logic << "\tfree(o);" << std::endl;
+	logic << "\treturn true;" << std::endl;
+	logic << "}" << std::endl;
+	logic << std::endl;
+	
 	genLockFunctionDef(logic, false);
 	logic << std::endl;
 	logic << "{" << std::endl;
 
 	logic << "\tbool res = true;" << std::endl;
 
-	logic << "\tif(o == NULL || o->cond == NULL || o->lock == NULL) res = false;" << std::endl;
+	logic << "\tif(o == NULL || o->lock == NULL) res = false;" << std::endl;
 	logic << std::endl;
 	logic << "\tif(res) res = (pthread_mutex_lock(o->lock) == 0);" << std::endl;
 	logic << std::endl;
@@ -103,7 +166,7 @@ bool Conditional::genLogic(std::ostream& logic)
 
 	logic << "\tbool res = true;" << std::endl;
 
-	logic << "\tif(o == NULL || o->cond == NULL || o->lock == NULL) res = false;" << std::endl;
+	logic << "\tif(o == NULL || o->lock == NULL) res = false;" << std::endl;
 	logic << std::endl;
 	logic << "\tif(res) res = (pthread_mutex_unlock(o->lock) == 0);" << std::endl;
 	logic << std::endl;
@@ -118,9 +181,9 @@ bool Conditional::genLogic(std::ostream& logic)
 
 	logic << "\tbool res = true;" << std::endl;
 
-	logic << "\tif(o == NULL || o->cond == NULL || o->lock == NULL) res = false;" << std::endl;
+	logic << "\tif(o == NULL || o->lock == NULL) res = false;" << std::endl;
 	logic << std::endl;
-	logic << "\tif(res) res = (pthread_cond_wait(o->cond, o->lock) == 0);" << std::endl;
+	logic << "\tif(res) res = (pthread_cond_wait(&o->cond, o->lock) == 0);" << std::endl;
 	logic << std::endl;
 
 	logic << "\treturn res;" << std::endl;
@@ -133,9 +196,9 @@ bool Conditional::genLogic(std::ostream& logic)
 
 	logic << "\tbool res = true;" << std::endl;
 
-	logic << "\tif(o == NULL || o->cond == NULL || o->lock == NULL) res = false;" << std::endl;
+	logic << "\tif(o == NULL || o->lock == NULL) res = false;" << std::endl;
 	logic << std::endl;
-	logic << "\tif(res) res = (((all) ?  pthread_cond_broadcast(o->cond) : pthread_cond_signal(o->cond)) == 0);" << std::endl;
+	logic << "\tif(res) res = (((all) ?  pthread_cond_broadcast(&o->cond) : pthread_cond_signal(&o->cond)) == 0);" << std::endl;
 	logic << std::endl;
 
 	logic << "\treturn res;" << std::endl;
